@@ -1,103 +1,157 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useState, useRef, useEffect } from 'react';
+import { Upload, Wifi, Database, Settings, Home, Search, BarChart3, Monitor, Tablet, Check, X, Play, Pause, RotateCcw, BadgeHelp} from 'lucide-react';
+import Card from '@/components/Card';
+import Link from 'next/link';
+import { useDatabaseStore } from '@/stores/database';
+
+const RoostHub = () => {
+  const {
+    matchData,
+    loading,
+    error,
+    initializeDatabase,
+    loadAllMatchData,
+    clearError
+  } = useDatabaseStore();
+  
+
+  useEffect(() => {
+    initializeDatabase();
+  }, [initializeDatabase, loadAllMatchData]);
+
+  const [activeTab, setActiveTab] = useState('upload');
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connected'); // automatically connected
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const mockMatches = [
+    { id: 1, team: 'Team Alpha', score: '24-18', level: 'Level 3 Coral', date: '2024-08-13', status: 'completed' },
+    { id: 2, team: 'Team Beta', score: '31-12', level: 'Level 2 Coral', date: '2024-08-13', status: 'completed' },
+    { id: 3, team: 'Team Gamma', score: '19-22', level: 'Level 4 Coral', date: '2024-08-12', status: 'completed' },
+    { id: 4, team: 'Team Delta', score: 'In Progress', level: 'Level 1 Coral', date: '2024-08-13', status: 'active' },
+  ];
+
+  const handleConnect = () => {
+    setConnectionStatus('connecting');
+    setTimeout(() => {
+      setConnectionStatus('connected');
+    }, 4000);
+  };
+
+  const handleUpload = () => {
+    setUploadProgress(0);
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 200);
+  };
+
+  type StatusType = 'completed' | 'active' | 'error' | 'inactive';
+  const StatusBadge = ({ status }: { status: StatusType }) => {
+    const colors: Record<StatusType, string> = {
+      completed: 'bg-green-100 text-green-800',
+      active: 'bg-[#32327C] text-[#F7F7F7]',
+      error: 'bg-red-100 text-red-800',
+      inactive: 'bg-[#E9E9E9] text-[#1C1B1F]'
+    };
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status]}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="h-full flex items-center justify-center p-8">
+      <div className="bg-[#F7F7F7] rounded-xl border border-[#E9E9E9] p-8 shadow-xl flex flex-col items-center max-w-2xl w-full">
+        <h2 className="text-2xl font-bold text-[#32327C] mb-8 flex items-center gap-3 justify-center">
+          <Tablet className="w-7 h-7 text-[#32327C]" />
+          Match Data Upload
+        </h2>
+        <div className="w-full flex flex-col items-center">
+          <div className="text-center mb-8 w-full flex flex-col items-center">
+            <div className="w-24 h-24 bg-[#32327C] rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg">
+              <Tablet className="w-12 h-12 text-[#F7F7F7]" />
+            </div>
+            <h3 className="text-xl font-bold text-[#32327C] mb-2">
+              Tablet Connected
+            </h3>
+            <p className="text-[#1C1B1F] mb-6">
+              Your scouting tablet is ready to upload match data to the central database
+            </p>
+            <button
+              onClick={handleUpload}
+              disabled={uploadProgress > 0 && uploadProgress < 100}
+              className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all  ${
+                uploadProgress === 0
+                  ? 'bg-[#32327C] text-[#F7F7F7] shadow-lg'
+                  : uploadProgress === 100
+                  ? 'bg-green-600 text-[#F7F7F7]'
+                  : 'bg-[#E9E9E9] text-[#1C1B1F] opacity-50 scale-100'
+              }`}
+            >
+              <Upload className="w-5 h-5 inline mr-3" />
+              {uploadProgress === 0 ? 'Upload Match Data' :
+                uploadProgress === 100 ? 'Upload Complete' :
+                'Uploading...'}
+            </button>
+            {uploadProgress > 0 && (
+              <div className="mt-6 space-y-3 w-full flex flex-col items-center">
+                <div className="w-full bg-[#E9E9E9] rounded-full h-3 overflow-hidden max-w-md">
+                  <div
+                    className="bg-[#32327C] h-full rounded-full transition-all duration-300 shadow-sm"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-[#1C1B1F] font-medium">{uploadProgress}% Complete</p>
+                {uploadProgress === 100 && (
+                  <p className="text-green-600 font-semibold">
+                    🎉 Successfully uploaded match data!
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-4 mt-8 w-full">
+            {[
+              { label: 'Matches Ready', value: '7', icon: '📊' },
+              { label: 'Teams Scouted', value: '12', icon: '🤖' },
+              { label: 'Data Points', value: '248', icon: '📈' },
+            ].map((stat, index) => (
+              <div key={index} className="bg-[#E9E9E9] rounded-xl p-4 text-center border border-[#E9E9E9]">
+                <div className="text-2xl mb-2">{stat.icon}</div>
+                <div className="text-xl font-bold text-[#32327C]">{stat.value}</div>
+                <div className="text-sm text-[#1C1B1F]">{stat.label}</div>
+              </div>
+            ))}
+          </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          {/* Navigation Links */}
+          <div className="grid grid-cols-2 gap-4 mt-8 w-full">
+            <Link href="/analytics" className="bg-blue-500 hover:bg-blue-600 rounded-xl p-6 text-center text-white transition-colors">
+              <BarChart3 className="mx-auto mb-2" size={32} />
+              <div className="text-lg font-semibold">Analytics Dashboard</div>
+              <div className="text-sm opacity-90">View team performance charts</div>
+            </Link>
+            <Link href="/test-data" className="bg-green-500 hover:bg-green-600 rounded-xl p-6 text-center text-white transition-colors">
+              <Database className="mx-auto mb-2" size={32} />
+              <div className="text-lg font-semibold">Generate Test Data</div>
+              <div className="text-sm opacity-90">Add sample data for testing</div>
+            </Link>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+
     </div>
   );
-}
+};
+
+export default RoostHub;

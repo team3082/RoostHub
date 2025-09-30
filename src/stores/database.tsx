@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import Database from '@tauri-apps/plugin-sql';
+import { listen } from '@tauri-apps/api/event';
 
 // Types for our database records
 export interface MatchData {
@@ -92,74 +93,96 @@ class DatabaseService {
   }
 
   async createTables() {
-    const db = await this.initialize();
-    
-    console.log('Creating match_data table...');
-    // Create match data table
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS match_data (
-        doc_ID TEXT,
-        is_uploaded INTEGER,
-        match_number INTEGER,
-        team_number INTEGER,
-        position TEXT,         
-        scouter_name TEXT,
-        auto_coral_L1 INTEGER,
-        auto_coral_L2 INTEGER,
-        auto_coral_L3 INTEGER,
-        auto_coral_L4 INTEGER,
-        auto_dropped INTEGER,
-        auto_net_algae INTEGER,
-        auto_processor_algae INTEGER,
-        auto_algae_removed INTEGER,
-        auto_leave INTEGER,
-        teleop_coral_L1 INTEGER,
-        teleop_coral_L2 INTEGER,
-        teleop_coral_L3 INTEGER,
-        teleop_coral_L4 INTEGER,
-        teleop_dropped INTEGER,
-        teleop_processor_algae INTEGER,
-        teleop_net_algae INTEGER,
-        teleop_algae_removed INTEGER,
-        end_none INTEGER,       
-        end_park INTEGER,      
-        end_shallow INTEGER,    
-        end_deep INTEGER,       
-        disabled TEXT,
-        defense_rank INTEGER,
-        driving_rank INTEGER,
-        notes TEXT
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      // Check if tables exist first
+      const tables = await this.db.select<{name: string}[]>(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('match_data', 'pit_data')"
       );
-    `);
-    console.log('match_data table created');
-    
-    console.log('Creating pit_data table...');
-    // Create pit data table
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS pit_data (
-        doc_ID TEXT NOT NULL,
-        is_uploaded INTEGER NOT NULL,
-        team_number INTEGER NOT NULL,
-        scouter_name TEXT NOT NULL,
-        drivetrain TEXT NOT NULL,
-        coral_L1 INTEGER NOT NULL,
-        coral_L2 INTEGER NOT NULL,
-        coral_L3 INTEGER NOT NULL,
-        coral_L4 INTEGER NOT NULL,
-        remove_algae INTEGER NOT NULL,
-        processor_algae INTEGER NOT NULL,
-        net_algae INTEGER NOT NULL,
-        prefers_coral INTEGER NOT NULL,
-        preferred_coral_level INTEGER NOT NULL,
-        park INTEGER NOT NULL,
-        shallow_climb INTEGER NOT NULL,
-        deep_climb INTEGER NOT NULL,
-        preferred_starting_zone TEXT NOT NULL,
-        preferred_end_status TEXT NOT NULL,
-        notes TEXT
-      );
-    `);
-    console.log('pit_data table created');
+      
+      const existingTables = new Set(tables.map(t => t.name));
+      
+      // Create match data table if it doesn't exist
+      if (!existingTables.has('match_data')) {
+        console.log('Creating match_data table...');
+        await this.db.execute(`
+          CREATE TABLE match_data (
+            doc_ID TEXT,
+            is_uploaded INTEGER,
+            match_number INTEGER,
+            team_number INTEGER,
+            position TEXT,         
+            scouter_name TEXT,
+            auto_coral_L1 INTEGER,
+            auto_coral_L2 INTEGER,
+            auto_coral_L3 INTEGER,
+            auto_coral_L4 INTEGER,
+            auto_dropped INTEGER,
+            auto_net_algae INTEGER,
+            auto_processor_algae INTEGER,
+            auto_algae_removed INTEGER,
+            auto_leave INTEGER,
+            teleop_coral_L1 INTEGER,
+            teleop_coral_L2 INTEGER,
+            teleop_coral_L3 INTEGER,
+            teleop_coral_L4 INTEGER,
+            teleop_dropped INTEGER,
+            teleop_processor_algae INTEGER,
+            teleop_net_algae INTEGER,
+            teleop_algae_removed INTEGER,
+            end_none INTEGER,       
+            end_park INTEGER,      
+            end_shallow INTEGER,    
+            end_deep INTEGER,       
+            disabled TEXT,
+            defense_rank INTEGER,
+            driving_rank INTEGER,
+            notes TEXT
+          );
+        `);
+        console.log('match_data table created');
+      } else {
+        console.log('match_data table already exists');
+      }
+      
+      // Create pit data table if it doesn't exist
+      if (!existingTables.has('pit_data')) {
+        console.log('Creating pit_data table...');
+        await this.db.execute(`
+          CREATE TABLE pit_data (
+            doc_ID TEXT NOT NULL,
+            is_uploaded INTEGER NOT NULL,
+            team_number INTEGER NOT NULL,
+            scouter_name TEXT NOT NULL,
+            drivetrain TEXT NOT NULL,
+            coral_L1 INTEGER NOT NULL,
+            coral_L2 INTEGER NOT NULL,
+            coral_L3 INTEGER NOT NULL,
+            coral_L4 INTEGER NOT NULL,
+            remove_algae INTEGER NOT NULL,
+            processor_algae INTEGER NOT NULL,
+            net_algae INTEGER NOT NULL,
+            prefers_coral INTEGER NOT NULL,
+            preferred_coral_level INTEGER NOT NULL,
+            park INTEGER NOT NULL,
+            shallow_climb INTEGER NOT NULL,
+            deep_climb INTEGER NOT NULL,
+            preferred_starting_zone TEXT NOT NULL,
+            preferred_end_status TEXT NOT NULL,
+            notes TEXT
+          );
+        `);
+        console.log('pit_data table created');
+      } else {
+        console.log('pit_data table already exists');
+      }
+    } catch (error) {
+      console.error('Error creating tables:', error);
+      throw error;
+    }
   }
 
   // Match data operations
@@ -327,6 +350,91 @@ class DatabaseService {
     );
     return result.map(r => r.team_number);
   }
+
+  // Check if a record with the given doc_ID already exists
+  async checkMatchDataExists(docId: string): Promise<boolean> {
+    const db = await this.initialize();
+    const result = await db.select<{count: number}[]>(
+      'SELECT COUNT(*) as count FROM match_data WHERE doc_ID = ?',
+      [docId]
+    );
+    return result[0].count > 0;
+  }
+
+  async checkPitDataExists(docId: string): Promise<boolean> {
+    const db = await this.initialize();
+    const result = await db.select<{count: number}[]>(
+      'SELECT COUNT(*) as count FROM pit_data WHERE doc_ID = ?',
+      [docId]
+    );
+    return result[0].count > 0;
+  }
+
+  async processUploadedDatabase(uploadedDbPath: string): Promise<{matchInserted: number, pitInserted: number}> {
+    console.log('Processing uploaded database:', uploadedDbPath);
+    
+    await this.initialize();
+    
+    const uploadedDb = await Database.load(`sqlite:${uploadedDbPath}`);
+    
+    try {
+      const matchData = await uploadedDb.select<MatchData[]>('SELECT * FROM match_data');
+      console.log(`Found ${matchData.length} match records in uploaded database`);
+      
+      // Read pit data from uploaded database
+      const pitData = await uploadedDb.select<PitData[]>('SELECT * FROM pit_data');
+      console.log(`Found ${pitData.length} pit records in uploaded database`);
+      
+      let matchInserted = 0;
+      let pitInserted = 0;
+      
+      // Insert match data (skip duplicates)
+      for (const match of matchData) {
+        if (match.doc_ID) {
+          const exists = await this.checkMatchDataExists(match.doc_ID);
+          if (!exists) {
+            try {
+              await this.addMatchData(match);
+              matchInserted++;
+            } catch (error) {
+              console.warn('Failed to insert match data:', match.doc_ID, error);
+            }
+          } else {
+            console.log('Skipping duplicate match data:', match.doc_ID);
+          }
+        }
+      }
+      
+      // Insert pit data (skip duplicates)
+      for (const pit of pitData) {
+        if (pit.doc_ID) {
+          const exists = await this.checkPitDataExists(pit.doc_ID);
+          if (!exists) {
+            try {
+              await this.addPitData(pit);
+              pitInserted++;
+            } catch (error) {
+              console.warn('Failed to insert pit data:', pit.doc_ID, error);
+            }
+          } else {
+            console.log('Skipping duplicate pit data:', pit.doc_ID);
+          }
+        }
+      }
+      
+      console.log(`Database merge complete: ${matchInserted} match records, ${pitInserted} pit records inserted`);
+      return { matchInserted, pitInserted };
+      
+    } finally {
+      // Always close the uploaded database connection
+      try {
+        await uploadedDb.close();
+        console.log('Uploaded database connection closed');
+      } catch (error) {
+        console.warn('Error closing uploaded database:', error);
+      }
+    }
+  }
 }
 
 // Zustand store interface
@@ -337,6 +445,7 @@ interface DatabaseStore {
   teamStats: TeamStats[];
   loading: boolean;
   error: string | null;
+  uploadStatus: string | null;
 
   // Actions
   initializeDatabase: () => Promise<void>;
@@ -349,7 +458,10 @@ interface DatabaseStore {
   loadAllPitData: () => Promise<void>;
   loadTeamStats: (teamNumber?: number) => Promise<void>;
   loadTopTeamsByCoralScoring: (limit?: number) => Promise<void>;
+  processUploadedDatabase: (uploadedDbPath: string) => Promise<void>;
+  setupUploadListener: () => Promise<void>;
   clearError: () => void;
+  clearUploadStatus: () => void;
 }
 
 // Create the Zustand store
@@ -360,6 +472,7 @@ export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
   teamStats: [],
   loading: false,
   error: null,
+  uploadStatus: null,
 
   initializeDatabase: async () => {
     set({ loading: true, error: null });
@@ -503,5 +616,53 @@ export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
     }
   },
 
+  processUploadedDatabase: async (uploadedDbPath: string) => {
+    set({ loading: true, error: null, uploadStatus: 'Processing uploaded database...' });
+    try {
+      const result = await get().dbService.processUploadedDatabase(uploadedDbPath);
+      const message = `Database merge complete: ${result.matchInserted} match records, ${result.pitInserted} pit records inserted`;
+      set({ 
+        loading: false, 
+        uploadStatus: message 
+      });
+      
+      // Refresh all data after successful upload
+      await get().loadAllMatchData();
+      await get().loadAllPitData();
+      await get().loadTeamStats();
+      
+    } catch (error) {
+      console.error('Failed to process uploaded database:', error);
+      set({ 
+        loading: false, 
+        error: error instanceof Error ? error.message : 'Failed to process uploaded database',
+        uploadStatus: null
+      });
+    }
+  },
+
+  setupUploadListener: async () => {
+    try {
+      await listen('database-uploaded', async (event) => {
+        const uploadedDbPath = event.payload as string;
+        console.log('Database uploaded event received:', uploadedDbPath);
+        await get().processUploadedDatabase(uploadedDbPath);
+      });
+      console.log('Database upload listener setup complete');
+    } catch (error) {
+      console.error('Failed to setup upload listener:', error);
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to setup upload listener' 
+      });
+    }
+  },
+
   clearError: () => set({ error: null }),
+  clearUploadStatus: () => set({ uploadStatus: null }),
 }));
+
+// Initialize upload listener when the module is loaded
+export const initializeDatabaseUploadListener = async () => {
+  const store = useDatabaseStore.getState();
+  await store.setupUploadListener();
+};

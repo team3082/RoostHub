@@ -134,19 +134,7 @@ const RoostHub = () => {
             ))}
           </div>
 
-          {/* Navigation Links */}
-          <div className="grid grid-cols-2 gap-4 mt-8 w-full">
-            <Link href="/analytics" className="bg-blue-500 hover:bg-blue-600 rounded-xl p-6 text-center text-white transition-colors">
-              <BarChart3 className="mx-auto mb-2" size={32} />
-              <div className="text-lg font-semibold">Analytics Dashboard</div>
-              <div className="text-sm opacity-90">View team performance charts</div>
-            </Link>
-            <Link href="/test-data" className="bg-green-500 hover:bg-green-600 rounded-xl p-6 text-center text-white transition-colors">
-              <Database className="mx-auto mb-2" size={32} />
-              <div className="text-lg font-semibold">Generate Test Data</div>
-              <div className="text-sm opacity-90">Add sample data for testing</div>
-            </Link>
-          </div>
+          
         </div>
       </div>
 

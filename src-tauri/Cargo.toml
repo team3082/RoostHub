@@ -25,5 +25,8 @@ tauri = { version = "2.7.0", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-axum = "0.7"
+warp = "0.3"
+tokio-tungstenite = "0.20"
+futures-util = "0.3"
+bytes = "1.0"
 which = "6"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useDatabaseStore, initializeDatabaseUploadListener } from '@/stores/database';
+import { useDatabaseStore, initializeDatabaseUploadListener } from '../stores/database';
 
 export default function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const { initializeDatabase, uploadStatus, error } = useDatabaseStore();

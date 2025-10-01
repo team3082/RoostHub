@@ -1,0 +1,34 @@
+// Match data interface for FRC scouting
+export interface MatchData {
+  doc_ID?: string;
+  is_uploaded?: number;
+  match_number: number;
+  team_number: number;
+  position: string;
+  scouter_name: string;
+  auto_coral_L1: number;
+  auto_coral_L2: number;
+  auto_coral_L3: number;
+  auto_coral_L4: number;
+  auto_dropped: number;
+  auto_net_algae: number;
+  auto_processor_algae: number;
+  auto_algae_removed: number;
+  auto_leave: number;
+  teleop_coral_L1: number;
+  teleop_coral_L2: number;
+  teleop_coral_L3: number;
+  teleop_coral_L4: number;
+  teleop_dropped: number;
+  teleop_processor_algae: number;
+  teleop_net_algae: number;
+  teleop_algae_removed: number;
+  end_none: number;
+  end_park: number;
+  end_shallow: number;
+  end_deep: number;
+  disabled: string;
+  defense_rank: number;
+  driving_rank: number;
+  notes: string;
+};

@@ -457,6 +457,217 @@ class DatabaseManager {
       return false;
     }
   }
+
+  // Delete methods
+  async deleteAllMatchData(): Promise<number> {
+    return this.withConnection(async (db) => {
+      const result = await db.execute('DELETE FROM match_data');
+      console.log('All match data deleted');
+      return result.rowsAffected;
+    });
+  }
+
+  async deleteAllPitData(): Promise<number> {
+    return this.withConnection(async (db) => {
+      const result = await db.execute('DELETE FROM pit_data');
+      console.log('All pit data deleted');
+      return result.rowsAffected;
+    });
+  }
+
+  async deleteAllData(): Promise<{matchDeleted: number, pitDeleted: number}> {
+    return this.withConnection(async (db) => {
+      const matchResult = await db.execute('DELETE FROM match_data');
+      const pitResult = await db.execute('DELETE FROM pit_data');
+      console.log(`All data deleted: ${matchResult.rowsAffected} match records, ${pitResult.rowsAffected} pit records`);
+      return {
+        matchDeleted: matchResult.rowsAffected,
+        pitDeleted: pitResult.rowsAffected
+      };
+    });
+  }
+
+  async exportPitDataToCSV(): Promise<void> {
+    return this.withConnection(async (db) => {
+      const pitData = await db.select<PitData[]>('SELECT * FROM pit_data ORDER BY team_number');
+      
+      if (pitData.length === 0) {
+        throw new Error('No pit data to export');
+      }
+
+      // Create CSV headers
+      const headers = [
+        'Team Number',
+        'Drivetrain',
+        'Coral L1',
+        'Coral L2', 
+        'Coral L3',
+        'Coral L4',
+        'Prefers Coral',
+        'Preferred Coral Level',
+        'Remove Algae',
+        'Processor Algae',
+        'Net Algae',
+        'Park',
+        'Shallow Climb',
+        'Deep Climb',
+        'Preferred Starting Zone',
+        'Preferred End Status',
+        'Notes',
+        'Scouter Name'
+      ];
+
+      // Convert data to CSV format
+      const csvData = pitData.map(pit => [
+        pit.team_number,
+        pit.drivetrain || '',
+        pit.coral_L1 > 0 ? 'Yes' : 'No',
+        pit.coral_L2 > 0 ? 'Yes' : 'No',
+        pit.coral_L3 > 0 ? 'Yes' : 'No',
+        pit.coral_L4 > 0 ? 'Yes' : 'No',
+        pit.prefers_coral > 0 ? 'Yes' : 'No',
+        pit.preferred_coral_level || '',
+        pit.remove_algae > 0 ? 'Yes' : 'No',
+        pit.processor_algae > 0 ? 'Yes' : 'No',
+        pit.net_algae > 0 ? 'Yes' : 'No',
+        pit.park > 0 ? 'Yes' : 'No',
+        pit.shallow_climb > 0 ? 'Yes' : 'No',
+        pit.deep_climb > 0 ? 'Yes' : 'No',
+        pit.preferred_starting_zone || '',
+        pit.preferred_end_status || '',
+        pit.notes || '',
+        pit.scouter_name || ''
+      ]);
+
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        ...csvData.map(row => 
+          row.map(field => 
+            // Escape commas and quotes in data
+            typeof field === 'string' && (field.includes(',') || field.includes('"')) 
+              ? `"${field.replace(/"/g, '""')}"` 
+              : field
+          ).join(',')
+        )
+      ].join('\n');
+
+      // For now, return the CSV content - the component will handle the file dialog
+      // TODO: Add Tauri file dialog when plugins are properly configured
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `pit-data-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log('Pit data exported');
+    });
+  }
+
+  async exportMatchDataToCSV(): Promise<void> {
+    return this.withConnection(async (db) => {
+      const matchData = await db.select<MatchData[]>('SELECT * FROM match_data ORDER BY match_number, team_number');
+      
+      if (matchData.length === 0) {
+        throw new Error('No match data to export');
+      }
+
+      // Create CSV headers for match data
+      const headers = [
+        'Match Number',
+        'Team Number',
+        'Position',
+        'Scouter Name',
+        'Auto Coral L1',
+        'Auto Coral L2',
+        'Auto Coral L3',
+        'Auto Coral L4',
+        'Auto Dropped',
+        'Auto Net Algae',
+        'Auto Processor Algae',
+        'Auto Algae Removed',
+        'Auto Leave',
+        'Teleop Coral L1',
+        'Teleop Coral L2',
+        'Teleop Coral L3',
+        'Teleop Coral L4',
+        'Teleop Dropped',
+        'Teleop Processor Algae',
+        'Teleop Net Algae',
+        'Teleop Algae Removed',
+        'End None',
+        'End Park',
+        'End Shallow',
+        'End Deep',
+        'Disabled',
+        'Defense Rank',
+        'Driving Rank',
+        'Notes'
+      ];
+
+      // Convert data to CSV format
+      const csvData = matchData.map(match => [
+        match.match_number,
+        match.team_number,
+        match.position || '',
+        match.scouter_name || '',
+        match.auto_coral_L1 || 0,
+        match.auto_coral_L2 || 0,
+        match.auto_coral_L3 || 0,
+        match.auto_coral_L4 || 0,
+        match.auto_dropped || 0,
+        match.auto_net_algae || 0,
+        match.auto_processor_algae || 0,
+        match.auto_algae_removed || 0,
+        match.auto_leave > 0 ? 'Yes' : 'No',
+        match.teleop_coral_L1 || 0,
+        match.teleop_coral_L2 || 0,
+        match.teleop_coral_L3 || 0,
+        match.teleop_coral_L4 || 0,
+        match.teleop_dropped || 0,
+        match.teleop_processor_algae || 0,
+        match.teleop_net_algae || 0,
+        match.teleop_algae_removed || 0,
+        match.end_none > 0 ? 'Yes' : 'No',
+        match.end_park > 0 ? 'Yes' : 'No',
+        match.end_shallow > 0 ? 'Yes' : 'No',
+        match.end_deep > 0 ? 'Yes' : 'No',
+        match.disabled || '',
+        match.defense_rank || 0,
+        match.driving_rank || 0,
+        match.notes || ''
+      ]);
+
+      // Create CSV content
+      const csvContent = [
+        headers.join(','),
+        ...csvData.map(row => 
+          row.map(field => 
+            // Escape commas and quotes in data
+            typeof field === 'string' && (field.includes(',') || field.includes('"')) 
+              ? `"${field.replace(/"/g, '""')}"` 
+              : field
+          ).join(',')
+        )
+      ].join('\n');
+
+      // For now, return the CSV content - the component will handle the file dialog
+      // TODO: Add Tauri file dialog when plugins are properly configured
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `match-data-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log('Match data exported');
+    });
+  }
 }
 
 export default DatabaseManager;

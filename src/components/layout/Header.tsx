@@ -2,8 +2,14 @@
 
 import { Monitor, Settings } from "lucide-react"
 import { useTabletConnection } from "@/hooks/useTabletConnection";
+import { useDatabaseStore } from "@/stores/database";
 
 export default function Header() {
+     const {
+        deleteAllData,
+      } = useDatabaseStore();
+    
+    
     const { isConnected, isLoading } = useTabletConnection();
     
     const connectionStatus = isLoading ? 'connecting' : (isConnected ? 'connected' : 'disconnected');

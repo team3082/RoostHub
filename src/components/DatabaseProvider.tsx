@@ -28,18 +28,18 @@ export default function DatabaseProvider({ children }: { children: React.ReactNo
     <>
       {children}
       {/* Upload status notification */}
-      {uploadStatus && (
+      {/* {uploadStatus && (
         <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50">
           {uploadStatus}
         </div>
-      )}
+      )} */}
       
       {/* Error notification */}
-      {error && (
+      {/* {error && (
         <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50">
           Error: {error}
         </div>
-      )}
+      )} */}
     </>
   );
 }

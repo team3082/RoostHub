@@ -16,11 +16,6 @@ const RoostHub = () => {
     clearError
   } = useDatabaseStore();
   
-
-  useEffect(() => {
-    initializeDatabase();
-  }, [initializeDatabase, loadAllMatchData]);
-
   const [activeTab, setActiveTab] = useState('upload');
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connected'); // automatically connected
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -85,42 +80,45 @@ const RoostHub = () => {
               Tablet Connected
             </h3>
             <p className="text-[#1C1B1F] mb-6">
-              Your scouting tablet is ready to upload match data to the central database
+              Your scouting tablet is ready to upload match data to the central database, click the upload to roost button in the data page of cluckscout.
             </p>
-            <button
-              onClick={handleUpload}
-              disabled={uploadProgress > 0 && uploadProgress < 100}
-              className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all  ${
-                uploadProgress === 0
-                  ? 'bg-[#32327C] text-[#F7F7F7] shadow-lg'
-                  : uploadProgress === 100
-                  ? 'bg-green-600 text-[#F7F7F7]'
-                  : 'bg-[#E9E9E9] text-[#1C1B1F] opacity-50 scale-100'
-              }`}
-            >
-              <Upload className="w-5 h-5 inline mr-3" />
-              {uploadProgress === 0 ? 'Upload Match Data' :
-                uploadProgress === 100 ? 'Upload Complete' :
-                'Uploading...'}
-            </button>
-            {uploadProgress > 0 && (
-              <div className="mt-6 space-y-3 w-full flex flex-col items-center">
-                <div className="w-full bg-[#E9E9E9] rounded-full h-3 overflow-hidden max-w-md">
-                  <div
-                    className="bg-[#32327C] h-full rounded-full transition-all duration-300 shadow-sm"
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
+            <p className="text-[#1C1B1F] mb-6">
+              PS: In the future, this will automatically detect when your tablet is connected and prompt you to upload. But that required reinstalling cluck scout.
+            </p>
+              {/* <button
+                onClick={handleUpload}
+                disabled={uploadProgress > 0 && uploadProgress < 100}
+                className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all  ${
+                  uploadProgress === 0
+                    ? 'bg-[#32327C] text-[#F7F7F7] shadow-lg'
+                    : uploadProgress === 100
+                    ? 'bg-green-600 text-[#F7F7F7]'
+                    : 'bg-[#E9E9E9] text-[#1C1B1F] opacity-50 scale-100'
+                }`}
+              >
+                <Upload className="w-5 h-5 inline mr-3" />
+                {uploadProgress === 0 ? 'Upload Match Data' :
+                  uploadProgress === 100 ? 'Upload Complete' :
+                  'Uploading...'}
+              </button>
+              {uploadProgress > 0 && (
+                <div className="mt-6 space-y-3 w-full flex flex-col items-center">
+                  <div className="w-full bg-[#E9E9E9] rounded-full h-3 overflow-hidden max-w-md">
+                    <div
+                      className="bg-[#32327C] h-full rounded-full transition-all duration-300 shadow-sm"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-[#1C1B1F] font-medium">{uploadProgress}% Complete</p>
+                  {uploadProgress === 100 && (
+                    <p className="text-green-600 font-semibold">
+                      🎉 Successfully uploaded match data!
+                    </p>
+                  )}
                 </div>
-                <p className="text-[#1C1B1F] font-medium">{uploadProgress}% Complete</p>
-                {uploadProgress === 100 && (
-                  <p className="text-green-600 font-semibold">
-                    🎉 Successfully uploaded match data!
-                  </p>
-                )}
-              </div>
-            )}
+              )} */}
           </div>
-          <div className="grid grid-cols-3 gap-4 mt-8 w-full">
+          {/* <div className="grid grid-cols-3 gap-4 mt-8 w-full">
             {[
               { label: 'Matches Ready', value: '7', icon: '📊' },
               { label: 'Teams Scouted', value: '12', icon: '🤖' },
@@ -132,7 +130,7 @@ const RoostHub = () => {
                 <div className="text-sm text-[#1C1B1F]">{stat.label}</div>
               </div>
             ))}
-          </div>
+          </div> */}
 
           
         </div>

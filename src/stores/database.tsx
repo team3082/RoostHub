@@ -26,6 +26,11 @@ interface DatabaseStore {
   loadTopTeamsByCoralScoring: (limit?: number) => Promise<void>;
   processUploadedDatabase: (uploadedDbPath: string) => Promise<void>;
   setupUploadListener: () => Promise<void>;
+  deleteAllMatchData: () => Promise<void>;
+  deleteAllPitData: () => Promise<void>;
+  deleteAllData: () => Promise<void>;
+  exportPitDataToCSV: () => Promise<void>;
+  exportMatchDataToCSV: () => Promise<void>;
   clearError: () => void;
   clearUploadStatus: () => void;
 }
@@ -241,6 +246,76 @@ export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
       set({ 
         error: error instanceof Error ? error.message : 'Failed to setup upload listener' 
       });
+    }
+  },
+
+  deleteAllMatchData: async () => {
+    set({ loading: true, error: null });
+    try {
+      const deletedCount = await get().dbManager.deleteAllMatchData();
+      set({ matchData: [], loading: false });
+      console.log(`Deleted ${deletedCount} match records`);
+    } catch (error) {
+      set({ 
+        loading: false, 
+        error: error instanceof Error ? error.message : 'Failed to delete match data' 
+      });
+    }
+  },
+
+  deleteAllPitData: async () => {
+    set({ loading: true, error: null });
+    try {
+      const deletedCount = await get().dbManager.deleteAllPitData();
+      set({ pitData: [], loading: false });
+      console.log(`Deleted ${deletedCount} pit records`);
+    } catch (error) {
+      set({ 
+        loading: false, 
+        error: error instanceof Error ? error.message : 'Failed to delete pit data' 
+      });
+    }
+  },
+
+  deleteAllData: async () => {
+    set({ loading: true, error: null });
+    try {
+      const result = await get().dbManager.deleteAllData();
+      set({ matchData: [], pitData: [], teamStats: [], loading: false });
+      console.log(`Deleted all data: ${result.matchDeleted} match records, ${result.pitDeleted} pit records`);
+    } catch (error) {
+      set({ 
+        loading: false, 
+        error: error instanceof Error ? error.message : 'Failed to delete all data' 
+      });
+    }
+  },
+
+  exportPitDataToCSV: async () => {
+    set({ loading: true, error: null });
+    try {
+      await get().dbManager.exportPitDataToCSV();
+      set({ loading: false });
+    } catch (error) {
+      set({ 
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to export pit data' 
+      });
+      throw error;
+    }
+  },
+
+  exportMatchDataToCSV: async () => {
+    set({ loading: true, error: null });
+    try {
+      await get().dbManager.exportMatchDataToCSV();
+      set({ loading: false });
+    } catch (error) {
+      set({ 
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to export match data' 
+      });
+      throw error;
     }
   },
 

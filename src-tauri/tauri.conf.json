@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "roost_hub",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.team3082.roosthub",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",

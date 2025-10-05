@@ -13,7 +13,8 @@ export default function Sidebar() {
           <nav className="space-y-2 flex-1">
             {[
               { id: '', icon: Upload, label: 'USB Data Transfer' },
-              { id: 'matches', icon: Database, label: 'Match Data' },
+              { id: 'match', icon: Database, label: 'Match Data' },
+              { id: 'pit', icon: Database, label: 'Pit Data' },
               { id: 'analytics', icon: BarChart3, label: 'Analytics' },
               { id: 'scouting', icon: Search, label: 'Scout Management' },
               { id: 'guide', icon: BadgeHelp, label: 'RoostHub Guide' },

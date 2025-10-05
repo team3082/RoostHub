@@ -11,7 +11,8 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle2,
-  Clock
+  Clock,
+  Download
 } from 'lucide-react';
 
 interface MatchSummary {
@@ -21,14 +22,15 @@ interface MatchSummary {
   scouted_positions: string[];
 }
 
-export default function MatchesPage() {
+export default function MatchPitData() {
   const {
     matchData,
     loading,
     error,
     initializeDatabase,
     loadAllMatchData,
-    clearError
+    clearError,
+    exportMatchDataToCSV
   } = useDatabaseStore();
 
   const { isConnected } = useTabletConnection();
@@ -37,9 +39,8 @@ export default function MatchesPage() {
   const [totalTeamsCount, setTotalTeamsCount] = useState(0);
 
   useEffect(() => {
-    initializeDatabase();
     loadAllMatchData();
-  }, [initializeDatabase, loadAllMatchData]);
+  }, [loadAllMatchData]);
 
   useEffect(() => {
     if (matchData.length > 0) {
@@ -79,6 +80,16 @@ export default function MatchesPage() {
     loadAllMatchData();
   };
 
+  const downloadCSV = async () => {
+    try {
+      await exportMatchDataToCSV();
+      // Success! The file has been downloaded
+    } catch (error) {
+      console.error('Failed to export CSV:', error);
+      // Error handling is already done in the store
+    }
+  };
+
   const getMatchCompletionStatus = (match: MatchSummary) => {
     if (match.total_teams >= 6) {
       return { status: 'complete', color: 'text-green-600', bg: 'bg-green-100' };
@@ -102,31 +113,6 @@ export default function MatchesPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">Match Overview</h1>
-            <p className="text-gray-600">Track scouting progress across all matches</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-              isConnected ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-            }`}>
-              {isConnected ? '📱 Tablet Connected' : '📱 No Tablet'}
-            </div>
-            <button
-              onClick={handleRefresh}
-              disabled={loading}
-              className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-          </div>
-        </div>
-      </div>
-
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
           <div className="flex items-center gap-2">
@@ -174,28 +160,24 @@ export default function MatchesPage() {
             </div>
           </div>
         </div>
-
+        
         <div className="bg-white p-6 rounded-xl shadow-lg border">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-orange-100 rounded-lg">
-              <CheckCircle2 className="w-6 h-6 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Completion Rate</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {totalMatches > 0 ? Math.round((matchSummaries.filter(m => m.total_teams >= 6).length / totalMatches) * 100) : 0}%
-              </p>
-            </div>
-          </div>
+          <button
+            onClick={downloadCSV}
+            className="text-lg font-bold w-full h-full bg-[#32327C] text-white rounded-lg hover:bg-[#434190] transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={loading || matchData.length === 0}
+          >
+            <Download className="w-4 h-4" />
+            Download CSV
+          </button>
         </div>
       </div>
 
       {/* Matches Table */}
-      <div className="bg-white rounded-xl shadow-lg border overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border overflow-scroll h-225">
         <div className="px-6 py-4 border-b bg-gray-50">
           <h2 className="text-xl font-semibold text-gray-800">Match Details</h2>
         </div>
-        
         {matchSummaries.length === 0 ? (
           <div className="p-12 text-center">
             <Database className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -218,9 +200,6 @@ export default function MatchesPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Team Numbers
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Positions
                   </th>
                 </tr>
               </thead>
@@ -260,18 +239,6 @@ export default function MatchesPage() {
                               className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded"
                             >
                               {team}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {match.scouted_positions.sort().map((position) => (
-                            <span
-                              key={position}
-                              className="inline-block px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded"
-                            >
-                              {position}
                             </span>
                           ))}
                         </div>

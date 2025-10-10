@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useDatabaseStore, initializeDatabaseUploadListener } from '../stores/database';
 
 export default function DatabaseProvider({ children }: { children: React.ReactNode }) {
-  const { initializeDatabase, uploadStatus, error } = useDatabaseStore();
+  const { initializeDatabase } = useDatabaseStore();
 
   useEffect(() => {
     const initializeApp = async () => {

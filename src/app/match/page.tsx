@@ -2,13 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useDatabaseStore } from '@/stores/database';
-import { useTabletConnection } from '@/hooks/useTabletConnection';
+// ...existing code... (tablet connection not used on this page)
 import { 
   Trophy, 
   Users, 
   Calendar, 
   Database,
-  RefreshCw,
   AlertCircle,
   CheckCircle2,
   Clock,
@@ -27,13 +26,11 @@ export default function MatchPitData() {
     matchData,
     loading,
     error,
-    initializeDatabase,
     loadAllMatchData,
     clearError,
     exportMatchDataToCSV
   } = useDatabaseStore();
 
-  const { isConnected } = useTabletConnection();
   const [matchSummaries, setMatchSummaries] = useState<MatchSummary[]>([]);
   const [totalMatches, setTotalMatches] = useState(0);
   const [totalTeamsCount, setTotalTeamsCount] = useState(0);
@@ -76,9 +73,7 @@ export default function MatchPitData() {
     }
   }, [matchData]);
 
-  const handleRefresh = () => {
-    loadAllMatchData();
-  };
+  // refresh is handled by actions on the page when needed
 
   const downloadCSV = async () => {
     try {
@@ -112,7 +107,7 @@ export default function MatchPitData() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto flex flex-col" style={{ height: 'calc(100vh - 120px)' }}>
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
           <div className="flex items-center gap-2">
@@ -174,18 +169,20 @@ export default function MatchPitData() {
       </div>
 
       {/* Matches Table */}
-      <div className="bg-white rounded-xl shadow-lg border overflow-scroll h-225">
-        <div className="px-6 py-4 border-b bg-gray-50">
+      <div className="bg-white rounded-xl shadow-lg border overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className="px-6 py-4 border-b bg-gray-50 flex-shrink-0">
           <h2 className="text-xl font-semibold text-gray-800">Match Details</h2>
         </div>
         {matchSummaries.length === 0 ? (
-          <div className="p-12 text-center">
+          <div className="p-12 text-center flex-1 flex items-center justify-center">
             <Database className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-500 mb-2">No Match Data</h3>
-            <p className="text-gray-400">Upload some scouting data from tablets to see match information here.</p>
+            <div>
+              <h3 className="text-lg font-medium text-gray-500 mb-2">No Match Data</h3>
+              <p className="text-gray-400">Upload some scouting data from tablets to see match information here.</p>
+            </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto flex-1 min-h-0">
             <table className="w-full">
               <thead className="bg-gray-50 border-b">
                 <tr>

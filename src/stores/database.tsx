@@ -37,7 +37,7 @@ interface DatabaseStore {
 
 // Create the Zustand store
 export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
-  dbManager: DatabaseManager.getInstance(), // ✅ Single shared instance!
+  dbManager: DatabaseManager.getInstance(), // Single shared instance!
   matchData: [],
   pitData: [],
   teamStats: [],

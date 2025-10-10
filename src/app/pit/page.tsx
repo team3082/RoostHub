@@ -2,11 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useDatabaseStore } from '@/stores/database';
-import { useTabletConnection } from '@/hooks/useTabletConnection';
+
 import { 
   Wrench,
   Users,
-  RefreshCw,
   AlertCircle,
   CheckCircle2,
   ChevronDown,
@@ -31,16 +30,13 @@ export default function PitPage() {
     exportPitDataToCSV
   } = useDatabaseStore();
 
-  const { isConnected } = useTabletConnection();
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
 
   useEffect(() => {
     loadAllPitData();
   }, [loadAllPitData]);
 
-  const handleRefresh = () => {
-    loadAllPitData();
-  };
+  // refreshing is done via explicit actions when needed
 
   const toggleTeamExpansion = (docId: string) => {
     setExpandedTeam(expandedTeam === docId ? null : docId);

@@ -1,7 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE OR IT WILL CAUSE A LOT OF ISSUES(DO NOT ASK HOW THAT WAS FOUND OUT)
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::process::Command;
+use std::os::windows::process::CommandExt;
+use std::process::{Command, Stdio};
 use std::time::Duration;
 use tokio::time::sleep;
 use std::thread;
@@ -14,6 +15,8 @@ use tokio::sync::broadcast;
 
 static TABLET_CONNECTED: AtomicBool = AtomicBool::new(false);
 static mut APP_HANDLE: Option<AppHandle> = None;
+
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 #[derive(Clone, Debug)]
 pub enum WsMessage {
@@ -71,7 +74,12 @@ async fn adb_forwarding_loop(app_handle: AppHandle, ws_tx: Arc<broadcast::Sender
     let mut last_connected_state = false;
     
     loop {
-        if let Ok(output) = Command::new("adb").arg("devices").output() {
+        if let Ok(output) = Command::new("adb")
+            .arg("devices")
+            .creation_flags(CREATE_NO_WINDOW)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             let devices: Vec<&str> = stdout
                 .lines()
@@ -97,6 +105,9 @@ async fn adb_forwarding_loop(app_handle: AppHandle, ws_tx: Arc<broadcast::Sender
             if is_connected {
                 let _ = Command::new("adb")
                     .args(&["reverse", "tcp:5000", "tcp:5000"])
+                    .creation_flags(CREATE_NO_WINDOW)
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
                     .status();
             }
         } else {
@@ -109,7 +120,7 @@ async fn adb_forwarding_loop(app_handle: AppHandle, ws_tx: Arc<broadcast::Sender
             }
         }
 
-        sleep(Duration::from_secs(1)).await;
+        sleep(Duration::from_millis(100)).await;
     }
 }
 

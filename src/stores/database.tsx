@@ -23,6 +23,7 @@ interface DatabaseStore {
   loadPitDataByTeam: (teamNumber: number) => Promise<void>;
   loadAllPitData: () => Promise<void>;
   loadTeamStats: (teamNumber?: number) => Promise<void>;
+  // will need to fix...
   loadTopTeamsByCoralScoring: (limit?: number) => Promise<void>;
   processUploadedDatabase: (uploadedDbPath: string) => Promise<void>;
   setupUploadListener: () => Promise<void>;

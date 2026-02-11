@@ -14,12 +14,12 @@ interface TeamStats {
   totalPoints: number;
   totalMatches: number;
   // Auto actions
-  autoCoralL1: number;
-  autoCoralL2: number;
-  autoCoralL3: number;
-  autoCoralL4: number;
-  autoNetAlgae: number;
-  autoProcessorAlgae: number;
+  autoL1: number;
+  autoL2: number;
+  autoL3: number;
+  //autoTrench: number;
+  //autoBump: number;
+  /*autoProcessorAlgae: number;
   autoAlgaeRemoved: number;
   autoLeave: number;
   // Teleop actions
@@ -29,11 +29,11 @@ interface TeamStats {
   teleopCoralL4: number;
   teleopNetAlgae: number;
   teleopProcessorAlgae: number;
-  teleopAlgaeRemoved: number;
+  teleopAlgaeRemoved: number;*/
   // Endgame actions
-  endPark: number;
-  endShallow: number;
-  endDeep: number;
+  endL1: number;
+  endL2: number;
+  endL3: number;
   // Ratings
   defenseRating: number;
   drivingRating: number;
@@ -70,12 +70,12 @@ export default function AnalyticsPage() {
           totalPoints: 0,
           totalMatches: 0,
           // Auto actions
-          autoCoralL1: 0,
-          autoCoralL2: 0,
-          autoCoralL3: 0,
-          autoCoralL4: 0,
-          autoNetAlgae: 0,
-          autoProcessorAlgae: 0,
+          autoL1: 0,
+          autoL2: 0,
+          autoL3: 0,
+          //autoTrench: 0,
+          //autoBump: 0,
+          /*autoProcessorAlgae: 0,
           autoAlgaeRemoved: 0,
           autoLeave: 0,
           // Teleop actions
@@ -85,11 +85,11 @@ export default function AnalyticsPage() {
           teleopCoralL4: 0,
           teleopNetAlgae: 0,
           teleopProcessorAlgae: 0,
-          teleopAlgaeRemoved: 0,
+          teleopAlgaeRemoved: 0,*/
           // Endgame actions
-          endPark: 0,
-          endShallow: 0,
-          endDeep: 0,
+          endL1: 0,
+          endL2: 0,
+          endL3: 0,
           // Ratings
           defenseRating: 0,
           drivingRating: 0,
@@ -98,20 +98,17 @@ export default function AnalyticsPage() {
 
       const stats = statsMap.get(match.team_number)!;
       
-      // Calculate auto points (coral scoring + algae + leave)
-      const autoPoints = (match.auto_coral_L1 * 3) + (match.auto_coral_L2 * 4) + 
-                        (match.auto_coral_L3 * 6) + (match.auto_coral_L4 * 7) +
-                        (match.auto_net_algae * 4) + (match.auto_processor_algae * 6) +
-                        (match.auto_leave * 3);
+      // Calculate auto points 
+      const autoPoints = (match.auto_L1 * 15) + (match.auto_L2 * 15) + 
+                        (match.auto_L3 * 15);
+                        //+ (match.auto_leave * 3);
 
-      // Calculate teleop points (coral scoring + algae + endgame)
-      const teleopPoints = (match.teleop_coral_L1 * 2) + (match.teleop_coral_L2 * 3) + 
-                          (match.teleop_coral_L3 * 4) + (match.teleop_coral_L4 * 5) +
-                          (match.teleop_net_algae * 4) + (match.teleop_processor_algae * 6) +
-                          (match.end_park * 2) + (match.end_shallow * 6) + (match.end_deep * 12);
+      // Calculate teleop points + endgame
+      const teleopPoints = (match.end_L1 * 10) + (match.end_L2 * 20) + (match.end_L3 * 30);
+                            // + hub
 
       // Calculate endgame points (separate for summary view)
-      const endgamePoints = (match.end_park * 2) + (match.end_shallow * 6) + (match.end_deep * 12);
+      const endgamePoints = (match.end_L1 * 15) + (match.end_L2 * 20) + (match.end_L3 * 30);
 
       stats.autoPoints += autoPoints;
       stats.teleopPoints += teleopPoints;
@@ -120,10 +117,10 @@ export default function AnalyticsPage() {
       stats.totalMatches += 1;
       
       // Track individual actions
-      stats.autoCoralL1 += match.auto_coral_L1;
-      stats.autoCoralL2 += match.auto_coral_L2;
-      stats.autoCoralL3 += match.auto_coral_L3;
-      stats.autoCoralL4 += match.auto_coral_L4;
+      stats.autoL1 += match.auto_L1;
+      stats.autoL2 += match.auto_L2;
+      stats.autoL3 += match.auto_L3;
+      /*stats.autoCoralL4 += match.auto_coral_L4;
       stats.autoNetAlgae += match.auto_net_algae;
       stats.autoProcessorAlgae += match.auto_processor_algae;
       stats.autoAlgaeRemoved += match.auto_algae_removed;
@@ -135,11 +132,11 @@ export default function AnalyticsPage() {
       stats.teleopCoralL4 += match.teleop_coral_L4;
       stats.teleopNetAlgae += match.teleop_net_algae;
       stats.teleopProcessorAlgae += match.teleop_processor_algae;
-      stats.teleopAlgaeRemoved += match.teleop_algae_removed;
+      stats.teleopAlgaeRemoved += match.teleop_algae_removed;*/
       
-      stats.endPark += match.end_park;
-      stats.endShallow += match.end_shallow;
-      stats.endDeep += match.end_deep;
+      stats.endL1 += match.end_L1;
+      stats.endL2 += match.end_L2;
+      stats.endL3 += match.end_L3;
       
       stats.defenseRating += match.defense_rank;
       stats.drivingRating += match.driving_rank;
@@ -153,10 +150,10 @@ export default function AnalyticsPage() {
       endgamePoints: stats.totalMatches > 0 ? stats.endgamePoints / stats.totalMatches : 0,
       totalPoints: stats.totalMatches > 0 ? stats.totalPoints / stats.totalMatches : 0,
       // Auto averages
-      autoCoralL1: stats.totalMatches > 0 ? stats.autoCoralL1 / stats.totalMatches : 0,
-      autoCoralL2: stats.totalMatches > 0 ? stats.autoCoralL2 / stats.totalMatches : 0,
-      autoCoralL3: stats.totalMatches > 0 ? stats.autoCoralL3 / stats.totalMatches : 0,
-      autoCoralL4: stats.totalMatches > 0 ? stats.autoCoralL4 / stats.totalMatches : 0,
+      autoL1: stats.totalMatches > 0 ? stats.autoL1 / stats.totalMatches : 0,
+      autoL2: stats.totalMatches > 0 ? stats.autoL2 / stats.totalMatches : 0,
+      autoL3: stats.totalMatches > 0 ? stats.autoL3 / stats.totalMatches : 0,
+      /*autoCoralL4: stats.totalMatches > 0 ? stats.autoCoralL4 / stats.totalMatches : 0,
       autoNetAlgae: stats.totalMatches > 0 ? stats.autoNetAlgae / stats.totalMatches : 0,
       autoProcessorAlgae: stats.totalMatches > 0 ? stats.autoProcessorAlgae / stats.totalMatches : 0,
       autoAlgaeRemoved: stats.totalMatches > 0 ? stats.autoAlgaeRemoved / stats.totalMatches : 0,
@@ -168,11 +165,11 @@ export default function AnalyticsPage() {
       teleopCoralL4: stats.totalMatches > 0 ? stats.teleopCoralL4 / stats.totalMatches : 0,
       teleopNetAlgae: stats.totalMatches > 0 ? stats.teleopNetAlgae / stats.totalMatches : 0,
       teleopProcessorAlgae: stats.totalMatches > 0 ? stats.teleopProcessorAlgae / stats.totalMatches : 0,
-      teleopAlgaeRemoved: stats.totalMatches > 0 ? stats.teleopAlgaeRemoved / stats.totalMatches : 0,
+      teleopAlgaeRemoved: stats.totalMatches > 0 ? stats.teleopAlgaeRemoved / stats.totalMatches : 0,*/
       // Endgame averages
-      endPark: stats.totalMatches > 0 ? stats.endPark / stats.totalMatches : 0,
-      endShallow: stats.totalMatches > 0 ? stats.endShallow / stats.totalMatches : 0,
-      endDeep: stats.totalMatches > 0 ? stats.endDeep / stats.totalMatches : 0,
+      endL1: stats.totalMatches > 0 ? stats.endL1 / stats.totalMatches : 0,
+      endL2: stats.totalMatches > 0 ? stats.endL2 / stats.totalMatches : 0,
+      endL3: stats.totalMatches > 0 ? stats.endL3 / stats.totalMatches : 0,
       // Rating averages
       defenseRating: stats.totalMatches > 0 ? stats.defenseRating / stats.totalMatches : 0,
       drivingRating: stats.totalMatches > 0 ? stats.drivingRating / stats.totalMatches : 0,
@@ -214,33 +211,33 @@ export default function AnalyticsPage() {
         case 'auto':
           return {
             ...baseData,
-            'Coral L1 (3pts)': parseFloat((team.autoCoralL1 * 3).toFixed(1)),
-            'Coral L2 (4pts)': parseFloat((team.autoCoralL2 * 4).toFixed(1)),
-            'Coral L3 (6pts)': parseFloat((team.autoCoralL3 * 6).toFixed(1)),
-            'Coral L4 (7pts)': parseFloat((team.autoCoralL4 * 7).toFixed(1)),
+            'L1 (15pts)': parseFloat((team.autoL1 * 15).toFixed(1)),
+            'L2 (15pts)': parseFloat((team.autoL2 * 15).toFixed(1)),
+            'L3 (15pts)': parseFloat((team.autoL3 * 15).toFixed(1)),
+            /*'Coral L4 (7pts)': parseFloat((team.autoCoralL4 * 7).toFixed(1)),
             'Net Algae (4pts)': parseFloat((team.autoNetAlgae * 4).toFixed(1)),
             'Processor Algae (6pts)': parseFloat((team.autoProcessorAlgae * 6).toFixed(1)),
-            'Leave (3pts)': parseFloat((team.autoLeave * 3).toFixed(1)),
+            'Leave (3pts)': parseFloat((team.autoLeave * 3).toFixed(1)),*/
           };
         case 'teleop':
           return {
             ...baseData,
-            'Coral L1 (2pts)': parseFloat((team.teleopCoralL1 * 2).toFixed(1)),
+            /*'Coral L1 (2pts)': parseFloat((team.teleopCoralL1 * 2).toFixed(1)),
             'Coral L2 (3pts)': parseFloat((team.teleopCoralL2 * 3).toFixed(1)),
             'Coral L3 (4pts)': parseFloat((team.teleopCoralL3 * 4).toFixed(1)),
             'Coral L4 (5pts)': parseFloat((team.teleopCoralL4 * 5).toFixed(1)),
             'Net Algae (4pts)': parseFloat((team.teleopNetAlgae * 4).toFixed(1)),
-            'Processor Algae (6pts)': parseFloat((team.teleopProcessorAlgae * 6).toFixed(1)),
-            'Park (2pts)': parseFloat((team.endPark * 2).toFixed(1)),
-            'Shallow Climb (6pts)': parseFloat((team.endShallow * 6).toFixed(1)),
-            'Deep Climb (12pts)': parseFloat((team.endDeep * 12).toFixed(1)),
+            'Processor Algae (6pts)': parseFloat((team.teleopProcessorAlgae * 6).toFixed(1)),*/
+            'L1 (10pts)': parseFloat((team.endL1 * 10).toFixed(1)),
+            'L2 (20pts)': parseFloat((team.endL2 * 20).toFixed(1)),
+            'L3 (30pts)': parseFloat((team.endL3 * 30).toFixed(1)),
           };
         case 'endgame':
           return {
             ...baseData,
-            'Park': parseFloat(team.endPark.toFixed(1)),
-            'Shallow Climb': parseFloat(team.endShallow.toFixed(1)),
-            'Deep Climb': parseFloat(team.endDeep.toFixed(1)),
+            'L1': parseFloat(team.endL1.toFixed(1)),
+            'L2': parseFloat(team.endL2.toFixed(1)),
+            'L3': parseFloat(team.endL3.toFixed(1)),
           };
         default: // summary
           return {
@@ -497,33 +494,24 @@ export default function AnalyticsPage() {
             )}
             {activeTab === 'auto' && (
               <>
-                <Bar dataKey="Coral L1 (3pts)" stackId="a" fill="#DDD6FE" name="Coral L1 (3pts)" />
-                <Bar dataKey="Coral L2 (4pts)" stackId="a" fill="#C4B5FD" name="Coral L2 (4pts)" />
-                <Bar dataKey="Coral L3 (6pts)" stackId="a" fill="#A78BFA" name="Coral L3 (6pts)" />
-                <Bar dataKey="Coral L4 (7pts)" stackId="a" fill="#7C3AED" name="Coral L4 (7pts)" />
-                <Bar dataKey="Net Algae (4pts)" stackId="a" fill="#A7F3D0" name="Net Algae (4pts)" />
-                <Bar dataKey="Processor Algae (6pts)" stackId="a" fill="#059669" name="Processor Algae (6pts)" />
-                <Bar dataKey="Leave (3pts)" stackId="a" fill="#FBBF24" name="Leave (3pts)" />
+                <Bar dataKey="L1 (15pts)" stackId="a" fill="#DDD6FE" name="L1 (15pts)" />
+                <Bar dataKey="L2 (15pts)" stackId="a" fill="#C4B5FD" name="L2 (15pts)" />
+                <Bar dataKey="L3 (15pts)" stackId="a" fill="#A78BFA" name="L3 (15pts)" />
+                
               </>
             )}
             {activeTab === 'teleop' && (
               <>
-                <Bar dataKey="Coral L1 (2pts)" stackId="a" fill="#DDD6FE" name="Coral L1 (2pts)" />
-                <Bar dataKey="Coral L2 (3pts)" stackId="a" fill="#C4B5FD" name="Coral L2 (3pts)" />
-                <Bar dataKey="Coral L3 (4pts)" stackId="a" fill="#A78BFA" name="Coral L3 (4pts)" />
-                <Bar dataKey="Coral L4 (5pts)" stackId="a" fill="#7C3AED" name="Coral L4 (5pts)" />
-                <Bar dataKey="Net Algae (4pts)" stackId="a" fill="#A7F3D0" name="Net Algae (4pts)" />
-                <Bar dataKey="Processor Algae (6pts)" stackId="a" fill="#059669" name="Processor Algae (6pts)" />
-                <Bar dataKey="Park (2pts)" stackId="a" fill="#FECACA" name="Park (2pts)" />
-                <Bar dataKey="Shallow Climb (6pts)" stackId="a" fill="#F87171" name="Shallow Climb (6pts)" />
-                <Bar dataKey="Deep Climb (12pts)" stackId="a" fill="#DC2626" name="Deep Climb (12pts)" />
+                <Bar dataKey="L1 (10pts)" stackId="a" fill="#FECACA" name="L1 (10pts)" />
+                <Bar dataKey="L2 (20pts)" stackId="a" fill="#F87171" name="L2 (20pts)" />
+                <Bar dataKey="L3 (30pts)" stackId="a" fill="#DC2626" name="L3 (30pts)" />
               </>
             )}
             {activeTab === 'endgame' && (
               <>
-                <Bar dataKey="Park" stackId="a" fill="#FECACA" name="Park" />
-                <Bar dataKey="Shallow Climb" stackId="a" fill="#F87171" name="Shallow Climb" />
-                <Bar dataKey="Deep Climb" stackId="a" fill="#DC2626" name="Deep Climb" />
+                <Bar dataKey="L1" stackId="a" fill="#FECACA" name="L1" />
+                <Bar dataKey="L2" stackId="a" fill="#F87171" name="L2" />
+                <Bar dataKey="L3" stackId="a" fill="#DC2626" name="L3" />
               </>
             )}
           </BarChart>

@@ -6,9 +6,10 @@ export interface MatchData {
   team_number: number;
   position: string;
   scouter_name: string;
-  auto_coral_L1: number;
-  auto_coral_L2: number;
-  auto_coral_L3: number;
+  auto_L1: number;
+  auto_L2: number;
+  auto_L3: number;
+  /* Also need auto and teleop hub
   auto_coral_L4: number;
   auto_dropped: number;
   auto_net_algae: number;
@@ -22,12 +23,13 @@ export interface MatchData {
   teleop_dropped: number;
   teleop_processor_algae: number;
   teleop_net_algae: number;
-  teleop_algae_removed: number;
+  teleop_algae_removed: number;*/
   end_none: number;
-  end_park: number;
-  end_shallow: number;
-  end_deep: number;
+  end_L1: number;
+  end_L2: number;
+  end_L3: number;
   disabled: string;
+  robot_Goal: string;
   defense_rank: number;
   driving_rank: number;
   notes: string;

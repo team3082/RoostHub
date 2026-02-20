@@ -7,9 +7,15 @@ export interface MatchData {
   position: string;
   scouter_name: string;
   auto_L1: number;
-  auto_L2: number;
+  auto_Bump: number;
+  auto_Trench: number;
+  auto_Hub: number;
+  teleop_Trench: number;
+  teleop_Bump: number;
+  teleop_Hub: number;
+  /*auto_L2: number;
   auto_L3: number;
-  /* Also need auto and teleop hub
+  //Also need auto and teleop hub
   auto_coral_L4: number;
   auto_dropped: number;
   auto_net_algae: number;

@@ -15,8 +15,14 @@ interface TeamStats {
   totalMatches: number;
   // Auto actions
   autoL1: number;
-  autoL2: number;
-  autoL3: number;
+  autoBump: number;
+  autoTrench: number;
+  autoHub: number;
+  teleopTrench: number;
+  teleopBump: number;
+  teleopHub: number;
+  //autoL2: number;
+  //autoL3: number;
   //autoTrench: number;
   //autoBump: number;
   /*autoProcessorAlgae: number;
@@ -37,6 +43,7 @@ interface TeamStats {
   // Ratings
   defenseRating: number;
   drivingRating: number;
+  robotGoal: string;
 }
 
 type SortField = keyof TeamStats;
@@ -71,8 +78,14 @@ export default function AnalyticsPage() {
           totalMatches: 0,
           // Auto actions
           autoL1: 0,
-          autoL2: 0,
-          autoL3: 0,
+          autoTrench: 0,
+          autoBump: 0,
+          autoHub: 0.0,
+          teleopBump: 0,
+          teleopTrench: 0,
+          teleopHub: 0.0,
+          //autoL2: 0,
+          //autoL3: 0,
           //autoTrench: 0,
           //autoBump: 0,
           /*autoProcessorAlgae: 0,
@@ -93,19 +106,18 @@ export default function AnalyticsPage() {
           // Ratings
           defenseRating: 0,
           drivingRating: 0,
+          robotGoal: "N/A",
         });
       }
 
       const stats = statsMap.get(match.team_number)!;
       
       // Calculate auto points 
-      const autoPoints = (match.auto_L1 * 15) + (match.auto_L2 * 15) + 
-                        (match.auto_L3 * 15);
-                        //+ (match.auto_leave * 3);
+      // neet to add in hub score too
+      const autoPoints = (match.auto_L1 * 15 + match.auto_Hub * 5);
 
       // Calculate teleop points + endgame
-      const teleopPoints = (match.end_L1 * 10) + (match.end_L2 * 20) + (match.end_L3 * 30);
-                            // + hub
+      const teleopPoints = (match.end_L1 * 10) + (match.end_L2 * 20) + (match.end_L3 * 30) + match.teleop_Hub * 5;
 
       // Calculate endgame points (separate for summary view)
       const endgamePoints = (match.end_L1 * 15) + (match.end_L2 * 20) + (match.end_L3 * 30);
@@ -118,8 +130,11 @@ export default function AnalyticsPage() {
       
       // Track individual actions
       stats.autoL1 += match.auto_L1;
-      stats.autoL2 += match.auto_L2;
-      stats.autoL3 += match.auto_L3;
+      stats.autoBump += match.auto_Bump;
+      stats.autoTrench += match.auto_Trench;
+      stats.autoHub += match.auto_Hub;
+      //stats.autoL2 += match.auto_L2;
+      //stats.autoL3 += match.auto_L3;
       /*stats.autoCoralL4 += match.auto_coral_L4;
       stats.autoNetAlgae += match.auto_net_algae;
       stats.autoProcessorAlgae += match.auto_processor_algae;
@@ -134,12 +149,17 @@ export default function AnalyticsPage() {
       stats.teleopProcessorAlgae += match.teleop_processor_algae;
       stats.teleopAlgaeRemoved += match.teleop_algae_removed;*/
       
+      stats.teleopBump += match.teleop_Bump;
+      stats.teleopTrench += match.teleop_Trench;
+      stats.teleopHub += match.teleop_Hub;
+
       stats.endL1 += match.end_L1;
       stats.endL2 += match.end_L2;
       stats.endL3 += match.end_L3;
       
       stats.defenseRating += match.defense_rank;
       stats.drivingRating += match.driving_rank;
+      stats.robotGoal = match.robot_Goal;
     });
 
     // Calculate averages
@@ -151,8 +171,14 @@ export default function AnalyticsPage() {
       totalPoints: stats.totalMatches > 0 ? stats.totalPoints / stats.totalMatches : 0,
       // Auto averages
       autoL1: stats.totalMatches > 0 ? stats.autoL1 / stats.totalMatches : 0,
-      autoL2: stats.totalMatches > 0 ? stats.autoL2 / stats.totalMatches : 0,
-      autoL3: stats.totalMatches > 0 ? stats.autoL3 / stats.totalMatches : 0,
+      autoTrench: stats.totalMatches > 0 ? stats.autoTrench / stats.totalMatches : 0,
+      autoBump: stats.totalMatches > 0 ? stats.autoBump / stats.totalMatches : 0,
+      autoHub: stats.totalMatches > 0 ? stats.autoHub / stats.totalMatches : 0,
+      //autoHubDuration: stats.totalMatches > 0 ? stats.autoHubDuration / stats.totalMatches : [0],
+      //autoL2: stats.totalMatches > 0 ? stats.autoL2 / stats.totalMatches : 0,
+      //autoL2: stats.totalMatches > 0 ? stats.autoL2 / stats.totalMatches : 0,
+      //autoL2: stats.totalMatches > 0 ? stats.autoL2 / stats.totalMatches : 0,
+      //autoL3: stats.totalMatches > 0 ? stats.autoL3 / stats.totalMatches : 0,
       /*autoCoralL4: stats.totalMatches > 0 ? stats.autoCoralL4 / stats.totalMatches : 0,
       autoNetAlgae: stats.totalMatches > 0 ? stats.autoNetAlgae / stats.totalMatches : 0,
       autoProcessorAlgae: stats.totalMatches > 0 ? stats.autoProcessorAlgae / stats.totalMatches : 0,
@@ -166,6 +192,9 @@ export default function AnalyticsPage() {
       teleopNetAlgae: stats.totalMatches > 0 ? stats.teleopNetAlgae / stats.totalMatches : 0,
       teleopProcessorAlgae: stats.totalMatches > 0 ? stats.teleopProcessorAlgae / stats.totalMatches : 0,
       teleopAlgaeRemoved: stats.totalMatches > 0 ? stats.teleopAlgaeRemoved / stats.totalMatches : 0,*/
+      teleopTrench: stats.totalMatches > 0 ? stats.teleopTrench / stats.totalMatches : 0,
+      teleopBump: stats.totalMatches > 0 ? stats.teleopBump / stats.totalMatches : 0,
+      teleopHub: stats.totalMatches > 0 ? stats.teleopHub / stats.totalMatches : 0,
       // Endgame averages
       endL1: stats.totalMatches > 0 ? stats.endL1 / stats.totalMatches : 0,
       endL2: stats.totalMatches > 0 ? stats.endL2 / stats.totalMatches : 0,
@@ -173,6 +202,7 @@ export default function AnalyticsPage() {
       // Rating averages
       defenseRating: stats.totalMatches > 0 ? stats.defenseRating / stats.totalMatches : 0,
       drivingRating: stats.totalMatches > 0 ? stats.drivingRating / stats.totalMatches : 0,
+      //robotGoal: stats.totalMatches > 0 ? stats.robotGoal: 0,
     }));
   }, [matchData]);
 
@@ -212,8 +242,9 @@ export default function AnalyticsPage() {
           return {
             ...baseData,
             'L1 (15pts)': parseFloat((team.autoL1 * 15).toFixed(1)),
-            'L2 (15pts)': parseFloat((team.autoL2 * 15).toFixed(1)),
-            'L3 (15pts)': parseFloat((team.autoL3 * 15).toFixed(1)),
+            'Hub (1pt)': parseFloat((team.autoHub * 5).toFixed(1)),
+            //'L2 (15pts)': parseFloat((team.autoL2 * 15).toFixed(1)),
+            //'L3 (15pts)': parseFloat((team.autoL3 * 15).toFixed(1)),
             /*'Coral L4 (7pts)': parseFloat((team.autoCoralL4 * 7).toFixed(1)),
             'Net Algae (4pts)': parseFloat((team.autoNetAlgae * 4).toFixed(1)),
             'Processor Algae (6pts)': parseFloat((team.autoProcessorAlgae * 6).toFixed(1)),
@@ -228,6 +259,7 @@ export default function AnalyticsPage() {
             'Coral L4 (5pts)': parseFloat((team.teleopCoralL4 * 5).toFixed(1)),
             'Net Algae (4pts)': parseFloat((team.teleopNetAlgae * 4).toFixed(1)),
             'Processor Algae (6pts)': parseFloat((team.teleopProcessorAlgae * 6).toFixed(1)),*/
+            'Hub (1pt)': parseFloat((team.teleopHub).toFixed(1)),
             'L1 (10pts)': parseFloat((team.endL1 * 10).toFixed(1)),
             'L2 (20pts)': parseFloat((team.endL2 * 20).toFixed(1)),
             'L3 (30pts)': parseFloat((team.endL3 * 30).toFixed(1)),
@@ -495,13 +527,13 @@ export default function AnalyticsPage() {
             {activeTab === 'auto' && (
               <>
                 <Bar dataKey="L1 (15pts)" stackId="a" fill="#DDD6FE" name="L1 (15pts)" />
-                <Bar dataKey="L2 (15pts)" stackId="a" fill="#C4B5FD" name="L2 (15pts)" />
-                <Bar dataKey="L3 (15pts)" stackId="a" fill="#A78BFA" name="L3 (15pts)" />
+                <Bar dataKey="Hub (1pt)" stackId="a" fill="#bacdf8" name="L1 (1pt)" />
                 
               </>
             )}
             {activeTab === 'teleop' && (
               <>
+                <Bar dataKey="Hub (1pt)" stackId="a" fill="#fceded" name="L1 (1pt)" />
                 <Bar dataKey="L1 (10pts)" stackId="a" fill="#FECACA" name="L1 (10pts)" />
                 <Bar dataKey="L2 (20pts)" stackId="a" fill="#F87171" name="L2 (20pts)" />
                 <Bar dataKey="L3 (30pts)" stackId="a" fill="#DC2626" name="L3 (30pts)" />
@@ -534,6 +566,7 @@ export default function AnalyticsPage() {
                 <SortableHeader field="totalMatches" label="Matches" />
                 <SortableHeader field="defenseRating" label="Defense" />
                 <SortableHeader field="drivingRating" label="Driving" />
+                <SortableHeader field="robotGoal" label="Robot Goal" />
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -558,6 +591,7 @@ export default function AnalyticsPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{team.totalMatches}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.defenseRating.toFixed(1)}/10</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.drivingRating.toFixed(1)}/10</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.robotGoal}/</td>
                 </tr>
               ))}
             </tbody>

@@ -66,8 +66,12 @@ class DatabaseManager {
             position TEXT NOT NULL,         
             scouter_name TEXT NOT NULL,
             auto_L1 INTEGER DEFAULT 0,
-            auto_L2 INTEGER DEFAULT 0,
-            auto_L3 INTEGER DEFAULT 0,
+            auto_Hub DOUBLE DEFAULT 0.0,
+            auto_Bump INTEGER DEFAULT 0,
+            auto_Trench INTEGER DEFAULT 0,
+            teleop_Hub DOUBLE DEFAULT 0.0,
+            teleop_Bump INTEGER DEFAULT 0,
+            teleop_Trench INTEGER DEFAULT 0,
             end_none INTEGER DEFAULT 0,       
             end_L1 INTEGER DEFAULT 0,      
             end_L2 INTEGER DEFAULT 0,    
@@ -134,11 +138,13 @@ class DatabaseManager {
       await db.execute(`
         INSERT OR REPLACE INTO match_data (
           doc_ID, is_uploaded, match_number, team_number, position, scouter_name,
-          auto_L1, auto_L2, auto_L3, end_none, end_L1, end_L2, end_L3, disabled, robotGoal, defense_rank, driving_rank, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          auto_L1, auto_Bump, auto_Trench, auto_Hub, teleop_Bump, teleop_Trench, teleop_Hub, 
+          end_none, end_L1, end_L2, end_L3, disabled, robotGoal, defense_rank, driving_rank, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         docId, data.is_uploaded || 0, data.match_number, data.team_number, data.position, data.scouter_name,
-        data.auto_L1, data.auto_L2, data.auto_L3, data.end_none, data.end_L1, data.end_L2, data.end_L3, data.disabled, data.robot_Goal, 
+        data.auto_L1, data.auto_Bump, data.auto_Trench, data.auto_Hub, data.teleop_Bump, data.teleop_Trench, data.teleop_Hub, 
+        data.end_none, data.end_L1, data.end_L2, data.end_L3, data.disabled, data.robot_Goal, 
         data.defense_rank, data.driving_rank, data.notes
       ]);
       
@@ -212,7 +218,9 @@ class DatabaseManager {
         SELECT 
           team_number,
           COUNT(*) as match_count,
-          AVG(auto_L1 + auto_L2 + auto_L3) > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(auto_L1) > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(auto_Hub) as avg_auto_Hub,
+          AVG(teleop_Hub) as avg_teleop_Hub,
           AVG(CASE WHEN (L1 + L2 + L3) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
           AVG(driving_rank) as avg_driving_rank
@@ -232,7 +240,9 @@ class DatabaseManager {
         SELECT 
           team_number,
           COUNT(*) as match_count,
-          AVG(auto_L1 + auto_L2 + auto_L3) > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(auto_L1) > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(auto_Hub) as avg_auto_Hub,
+          AVG(teleop_Hub) as avg_teleop_Hub,
           AVG(CASE WHEN (L1 + L2 + L3) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
           AVG(driving_rank) as avg_driving_rank
@@ -246,19 +256,21 @@ class DatabaseManager {
     });
   }
 
-  async getTopTeamsByCoralScoring(limit: number = 10): Promise<TeamStats[]> {
+  async getTopTeamsByScoring(limit: number = 10): Promise<TeamStats[]> {
     return this.withConnection(async (db) => {
       const result = await db.select<TeamStats[]>(`
         SELECT 
           team_number,
           COUNT(*) as match_count,
-          AVG(auto_L1 + auto_L2 + auto_L3) > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(auto_L1) > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(auto_Hub) as avg_auto_Hub,
+          AVG(teleop_Hub) as avg_teleop_Hub,
           AVG(CASE WHEN (L1 + L2 + L3) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
           AVG(driving_rank) as avg_driving_rank
         FROM match_data 
         GROUP BY team_number
-        ORDER BY (avg_auto_coral_total + climb_success_rate) DESC
+        ORDER BY (avg_auto_Hub + avg_teleop_Hub) DESC
         LIMIT ?
       `, [limit]);
       
@@ -527,8 +539,12 @@ class DatabaseManager {
         'Position',
         'Scouter Name',
         'Auto L1',
-        'Auto L2',
-        'Auto L3',
+        'Auto Bump',
+        'Auto Trench',
+        'Auto Hub',
+        'Teleop Bump',
+        'Teleop Trench',
+        'Teleop Hub',
         'End None',
         'End L1',
         'End L2',
@@ -547,8 +563,12 @@ class DatabaseManager {
         match.position || '',
         match.scouter_name || '',
         match.auto_L1 || 0,
-        match.auto_L2 || 0,
-        match.auto_L3 || 0,
+        match.auto_Bump || 0,
+        match.auto_Trench || 0,
+        match.teleop_Bump || 0,
+        match.teleop_Trench || 0,
+        match.auto_Hub || 0,
+        match.teleop_Hub || 0,
         match.end_none > 0 ? 'Yes' : 'No',
         match.end_L1 > 0 ? 'Yes' : 'No',
         match.end_L2 > 0 ? 'Yes' : 'No',

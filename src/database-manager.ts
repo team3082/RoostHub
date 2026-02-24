@@ -1,5 +1,5 @@
 import Database from '@tauri-apps/plugin-sql';
-import { MatchData, PitData, TeamStats } from './types';
+import { MatchData, RawMatchData, PitData, TeamStats } from './types';
 
 /**
  * DatabaseManager - uses connection-per-operation to avoid connection pool issues
@@ -45,6 +45,30 @@ class DatabaseManager {
     }
   }
 
+  // Helper methods for JSON array conversion
+  private serializeShootingTimes(times: number[]): string {
+    return JSON.stringify(times || []);
+  }
+
+  private deserializeShootingTimes(times: string | number[]): number[] {
+    if (Array.isArray(times)) {
+      return times;
+    }
+    try {
+      return JSON.parse(times || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  private parseMatchDataFromDB(data: RawMatchData): MatchData {
+    return {
+      ...data,
+      auto_shooting_times: this.deserializeShootingTimes(data.auto_shooting_times),
+      teleop_shooting_times: this.deserializeShootingTimes(data.teleop_shooting_times)
+    };
+  }
+
   private async createTables(db: Database): Promise<void> {
     try {
       // Check existing tables
@@ -59,29 +83,37 @@ class DatabaseManager {
         console.log('Creating match_data table...');
         await db.execute(`
           CREATE TABLE match_data (
-            doc_ID TEXT PRIMARY KEY,
-            is_uploaded INTEGER DEFAULT 0,
-            match_number INTEGER NOT NULL,
-            team_number INTEGER NOT NULL,
-            position TEXT NOT NULL,         
-            scouter_name TEXT NOT NULL,
-            auto_L1 INTEGER DEFAULT 0,
-            auto_Hub DOUBLE DEFAULT 0.0,
-            auto_Bump INTEGER DEFAULT 0,
-            auto_Trench INTEGER DEFAULT 0,
-            teleop_Hub DOUBLE DEFAULT 0.0,
-            teleop_Bump INTEGER DEFAULT 0,
-            teleop_Trench INTEGER DEFAULT 0,
-            end_none INTEGER DEFAULT 0,       
-            end_L1 INTEGER DEFAULT 0,      
-            end_L2 INTEGER DEFAULT 0,    
-            end_L3 INTEGER DEFAULT 0,       
-            disabled TEXT DEFAULT '',
-            robotGoal TEXT DEFAULT '',
-            defense_rank INTEGER DEFAULT 0,
-            driving_rank INTEGER DEFAULT 0,
-            notes TEXT DEFAULT '',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            doc_ID TEXT,
+            is_uploaded INTEGER,
+            match_number INTEGER,
+            team_number INTEGER,
+            position TEXT,         
+            scouter_name TEXT,
+            auto_L1_climb INTEGER,
+            auto_attempted_climb INTEGER,
+            auto_used_depot INTEGER,
+            auto_used_outpost INTEGER,
+            auto_bump INTEGER,
+            auto_trench INTEGER,
+            auto_shooting_times TEXT,
+            auto_leave INTEGER,
+            teleop_L1_climb INTEGER,
+            teleop_L2_climb INTEGER,
+            teleop_L3_climb INTEGER,
+            teleop_attempted_climb INTEGER,
+            teleop_used_depot INTEGER,
+            teleop_used_outpost INTEGER,
+            teleop_bump INTEGER,
+            teleop_trench INTEGER,
+            teleop_shooting_times TEXT,
+            end_none INTEGER,       
+            end_park INTEGER,      
+            end_shallow INTEGER,    
+            end_deep INTEGER,
+            disabled TEXT,
+            defense_rank INTEGER,
+            driving_rank INTEGER,
+            notes TEXT
           );
         `);
         
@@ -138,14 +170,21 @@ class DatabaseManager {
       await db.execute(`
         INSERT OR REPLACE INTO match_data (
           doc_ID, is_uploaded, match_number, team_number, position, scouter_name,
-          auto_L1, auto_Bump, auto_Trench, auto_Hub, teleop_Bump, teleop_Trench, teleop_Hub, 
-          end_none, end_L1, end_L2, end_L3, disabled, robotGoal, defense_rank, driving_rank, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          auto_L1_climb, auto_attempted_climb, auto_used_depot, auto_used_outpost,
+          auto_bump, auto_trench, auto_shooting_times, auto_leave,
+          teleop_L1_climb, teleop_L2_climb, teleop_L3_climb, teleop_attempted_climb,
+          teleop_used_depot, teleop_used_outpost, teleop_bump, teleop_trench, teleop_shooting_times,
+          end_none, end_park, end_shallow, end_deep,
+          disabled, defense_rank, driving_rank, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         docId, data.is_uploaded || 0, data.match_number, data.team_number, data.position, data.scouter_name,
-        data.auto_L1, data.auto_Bump, data.auto_Trench, data.auto_Hub, data.teleop_Bump, data.teleop_Trench, data.teleop_Hub, 
-        data.end_none, data.end_L1, data.end_L2, data.end_L3, data.disabled, data.robot_Goal, 
-        data.defense_rank, data.driving_rank, data.notes
+        data.auto_L1_climb, data.auto_attempted_climb, data.auto_used_depot, data.auto_used_outpost,
+        data.auto_bump, data.auto_trench, this.serializeShootingTimes(data.auto_shooting_times), data.auto_leave,
+        data.teleop_L1_climb, data.teleop_L2_climb, data.teleop_L3_climb, data.teleop_attempted_climb,
+        data.teleop_used_depot, data.teleop_used_outpost, data.teleop_bump, data.teleop_trench, this.serializeShootingTimes(data.teleop_shooting_times),
+        data.end_none, data.end_park, data.end_shallow, data.end_deep,
+        data.disabled, data.defense_rank, data.driving_rank, data.notes
       ]);
       
       console.log('Match data added successfully');
@@ -154,27 +193,34 @@ class DatabaseManager {
 
   async getMatchDataByTeam(teamNumber: number): Promise<MatchData[]> {
     return this.withConnection(async (db) => {
-      return db.select<MatchData[]>(
+      const results = await db.select<RawMatchData[]>(
         'SELECT * FROM match_data WHERE team_number = ? ORDER BY match_number',
         [teamNumber]
       );
+      return results.map(r => this.parseMatchDataFromDB(r));
     });
   }
 
   async getMatchDataByMatch(matchNumber: number): Promise<MatchData[]> {
     return this.withConnection(async (db) => {
-      return db.select<MatchData[]>(
+      const results = await db.select<RawMatchData[]>(
         'SELECT * FROM match_data WHERE match_number = ? ORDER BY team_number',
         [matchNumber]
       );
+      return results.map(r => this.parseMatchDataFromDB(r));
     });
   }
 
   async getAllMatchData(): Promise<MatchData[]> {
     return this.withConnection(async (db) => {
-      return db.select<MatchData[]>(
+      console.log('DatabaseManager: Fetching all match data...');
+      const results = await db.select<RawMatchData[]>(
         'SELECT * FROM match_data ORDER BY match_number, team_number'
       );
+      console.log(`DatabaseManager: Found ${results.length} raw match records`);
+      const parsed = results.map(r => this.parseMatchDataFromDB(r));
+      console.log(`DatabaseManager: Parsed ${parsed.length} match records`);
+      return parsed;
     });
   }
 
@@ -218,10 +264,8 @@ class DatabaseManager {
         SELECT 
           team_number,
           COUNT(*) as match_count,
-          AVG(auto_L1) > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
-          AVG(auto_Hub) as avg_auto_Hub,
-          AVG(teleop_Hub) as avg_teleop_Hub,
-          AVG(CASE WHEN (L1 + L2 + L3) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
+          AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
           AVG(driving_rank) as avg_driving_rank
         FROM match_data 
@@ -240,10 +284,8 @@ class DatabaseManager {
         SELECT 
           team_number,
           COUNT(*) as match_count,
-          AVG(auto_L1) > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
-          AVG(auto_Hub) as avg_auto_Hub,
-          AVG(teleop_Hub) as avg_teleop_Hub,
-          AVG(CASE WHEN (L1 + L2 + L3) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
+          AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
           AVG(driving_rank) as avg_driving_rank
         FROM match_data 
@@ -262,15 +304,13 @@ class DatabaseManager {
         SELECT 
           team_number,
           COUNT(*) as match_count,
-          AVG(auto_L1) > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
-          AVG(auto_Hub) as avg_auto_Hub,
-          AVG(teleop_Hub) as avg_teleop_Hub,
-          AVG(CASE WHEN (L1 + L2 + L3) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
+          AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
           AVG(driving_rank) as avg_driving_rank
         FROM match_data 
         GROUP BY team_number
-        ORDER BY (avg_auto_Hub + avg_teleop_Hub) DESC
+        ORDER BY (endGameClimb_success_rate + autoClimb_success_rate) DESC
         LIMIT ?
       `, [limit]);
       
@@ -325,7 +365,8 @@ class DatabaseManager {
         
         // Read all data immediately
         try {
-          matchData = await uploadedDb.select<MatchData[]>('SELECT * FROM match_data');
+          const rawMatchData = await uploadedDb.select<RawMatchData[]>('SELECT * FROM match_data');
+          matchData = rawMatchData.map(r => this.parseMatchDataFromDB(r));
           console.log(`Found ${matchData.length} match records in uploaded database`);
         } catch (error) {
           console.warn('No match_data table in uploaded database:', error);
@@ -526,7 +567,8 @@ class DatabaseManager {
 
   async exportMatchDataToCSV(): Promise<void> {
     return this.withConnection(async (db) => {
-      const matchData = await db.select<MatchData[]>('SELECT * FROM match_data ORDER BY match_number, team_number');
+      const rawData = await db.select<RawMatchData[]>('SELECT * FROM match_data ORDER BY match_number, team_number');
+      const matchData = rawData.map(r => this.parseMatchDataFromDB(r));
       
       if (matchData.length === 0) {
         throw new Error('No match data to export');
@@ -538,19 +580,28 @@ class DatabaseManager {
         'Team Number',
         'Position',
         'Scouter Name',
-        'Auto L1',
+        'Auto L1 Climb',
+        'Auto Attempted Climb',
+        'Auto Used Depot',
+        'Auto Used Outpost',
         'Auto Bump',
         'Auto Trench',
-        'Auto Hub',
+        'Auto Shooting Times',
+        'Auto Leave',
+        'Teleop L1 Climb',
+        'Teleop L2 Climb',
+        'Teleop L3 Climb',
+        'Teleop Attempted Climb',
+        'Teleop Used Depot',
+        'Teleop Used Outpost',
         'Teleop Bump',
         'Teleop Trench',
-        'Teleop Hub',
+        'Teleop Shooting Times',
         'End None',
-        'End L1',
-        'End L2',
-        'End L3',
+        'End Park',
+        'End Shallow',
+        'End Deep',
         'Disabled',
-        'Robot Goal',
         'Defense Rank',
         'Driving Rank',
         'Notes'
@@ -562,19 +613,28 @@ class DatabaseManager {
         match.team_number,
         match.position || '',
         match.scouter_name || '',
-        match.auto_L1 || 0,
-        match.auto_Bump || 0,
-        match.auto_Trench || 0,
-        match.teleop_Bump || 0,
-        match.teleop_Trench || 0,
-        match.auto_Hub || 0,
-        match.teleop_Hub || 0,
+        match.auto_L1_climb || 0,
+        match.auto_attempted_climb || 0,
+        match.auto_used_depot || 0,
+        match.auto_used_outpost || 0,
+        match.auto_bump || 0,
+        match.auto_trench || 0,
+        match.auto_shooting_times.join(';') || '',
+        match.auto_leave || 0,
+        match.teleop_L1_climb || 0,
+        match.teleop_L2_climb || 0,
+        match.teleop_L3_climb || 0,
+        match.teleop_attempted_climb || 0,
+        match.teleop_used_depot || 0,
+        match.teleop_used_outpost || 0,
+        match.teleop_bump || 0,
+        match.teleop_trench || 0,
+        match.teleop_shooting_times.join(';') || '',
         match.end_none > 0 ? 'Yes' : 'No',
-        match.end_L1 > 0 ? 'Yes' : 'No',
-        match.end_L2 > 0 ? 'Yes' : 'No',
-        match.end_L3 > 0 ? 'Yes' : 'No',
+        match.end_park > 0 ? 'Yes' : 'No',
+        match.end_shallow > 0 ? 'Yes' : 'No',
+        match.end_deep > 0 ? 'Yes' : 'No',
         match.disabled || '',
-        match.robot_Goal || '',
         match.defense_rank || 0,
         match.driving_rank || 0,
         match.notes || ''

@@ -8,42 +8,35 @@ import { Trophy, Target, Users, BarChart3, ChevronUp, ChevronDown, X, Filter } f
 
 interface TeamStats {
   teamNumber: number;
-  autoPoints: number;
-  teleopPoints: number;
-  endgamePoints: number;
-  totalPoints: number;
   totalMatches: number;
-  // Auto actions
-  autoL1: number;
+  // Auto actions (averages)
+  autoL1Climb: number;
+  autoAttemptedClimb: number;
+  autoUsedDepot: number;
+  autoUsedOutpost: number;
   autoBump: number;
   autoTrench: number;
-  autoHub: number;
-  teleopTrench: number;
-  teleopBump: number;
-  teleopHub: number;
-  //autoL2: number;
-  //autoL3: number;
-  //autoTrench: number;
-  //autoBump: number;
-  /*autoProcessorAlgae: number;
-  autoAlgaeRemoved: number;
+  autoShootingCount: number;
+  autoShootingTotalTime: number; // Total seconds spent shooting
   autoLeave: number;
-  // Teleop actions
-  teleopCoralL1: number;
-  teleopCoralL2: number;
-  teleopCoralL3: number;
-  teleopCoralL4: number;
-  teleopNetAlgae: number;
-  teleopProcessorAlgae: number;
-  teleopAlgaeRemoved: number;*/
-  // Endgame actions
-  endL1: number;
-  endL2: number;
-  endL3: number;
+  // Teleop actions (averages)
+  teleopL1Climb: number;
+  teleopL2Climb: number;
+  teleopL3Climb: number;
+  teleopAttemptedClimb: number;
+  teleopUsedDepot: number;
+  teleopUsedOutpost: number;
+  teleopBump: number;
+  teleopTrench: number;
+  teleopShootingCount: number;
+  teleopShootingTotalTime: number; // Total seconds spent shooting
+  // Endgame actions (averages)
+  endPark: number;
+  endShallow: number;
+  endDeep: number;
   // Ratings
   defenseRating: number;
   drivingRating: number;
-  robotGoal: string;
 }
 
 type SortField = keyof TeamStats;
@@ -53,156 +46,133 @@ type ViewTab = 'auto' | 'teleop' | 'endgame' | 'summary';
 export default function AnalyticsPage() {
   const [selectedTeams, setSelectedTeams] = useState<number[]>([]);
   const [activeTab, setActiveTab] = useState<ViewTab>('summary');
-  const [sortField, setSortField] = useState<SortField>('totalPoints');
+  const [sortField, setSortField] = useState<SortField>('totalMatches');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [showTeamFilter, setShowTeamFilter] = useState(false);
   
   const { matchData, loadAllMatchData, loading, error } = useDatabaseStore();
 
   useEffect(() => {
-    loadAllMatchData();
+    console.log('Analytics: Loading match data...');
+    loadAllMatchData().catch(err => {
+      console.error('Analytics: Failed to load match data:', err);
+    });
   }, [loadAllMatchData]);
 
   // Calculate team statistics from match data
   const teamStats = useMemo(() => {
+    console.log('Analytics: Calculating stats from', matchData.length, 'matches');
     const statsMap = new Map<number, TeamStats>();
 
     matchData.forEach((match: MatchData) => {
       if (!statsMap.has(match.team_number)) {
         statsMap.set(match.team_number, {
           teamNumber: match.team_number,
-          autoPoints: 0,
-          teleopPoints: 0,
-          endgamePoints: 0,
-          totalPoints: 0,
           totalMatches: 0,
           // Auto actions
-          autoL1: 0,
-          autoTrench: 0,
+          autoL1Climb: 0,
+          autoAttemptedClimb: 0,
+          autoUsedDepot: 0,
+          autoUsedOutpost: 0,
           autoBump: 0,
-          autoHub: 0.0,
-          teleopBump: 0,
-          teleopTrench: 0,
-          teleopHub: 0.0,
-          //autoL2: 0,
-          //autoL3: 0,
-          //autoTrench: 0,
-          //autoBump: 0,
-          /*autoProcessorAlgae: 0,
-          autoAlgaeRemoved: 0,
+          autoTrench: 0,
+          autoShootingCount: 0,
+          autoShootingTotalTime: 0,
           autoLeave: 0,
           // Teleop actions
-          teleopCoralL1: 0,
-          teleopCoralL2: 0,
-          teleopCoralL3: 0,
-          teleopCoralL4: 0,
-          teleopNetAlgae: 0,
-          teleopProcessorAlgae: 0,
-          teleopAlgaeRemoved: 0,*/
+          teleopL1Climb: 0,
+          teleopL2Climb: 0,
+          teleopL3Climb: 0,
+          teleopAttemptedClimb: 0,
+          teleopUsedDepot: 0,
+          teleopUsedOutpost: 0,
+          teleopBump: 0,
+          teleopTrench: 0,
+          teleopShootingCount: 0,
+          teleopShootingTotalTime: 0,
           // Endgame actions
-          endL1: 0,
-          endL2: 0,
-          endL3: 0,
+          endPark: 0,
+          endShallow: 0,
+          endDeep: 0,
           // Ratings
           defenseRating: 0,
           drivingRating: 0,
-          robotGoal: "N/A",
         });
       }
 
       const stats = statsMap.get(match.team_number)!;
       
-      // Calculate auto points 
-      // neet to add in hub score too
-      const autoPoints = (match.auto_L1 * 15 + match.auto_Hub * 5);
-
-      // Calculate teleop points + endgame
-      const teleopPoints = (match.end_L1 * 10) + (match.end_L2 * 20) + (match.end_L3 * 30) + match.teleop_Hub * 5;
-
-      // Calculate endgame points (separate for summary view)
-      const endgamePoints = (match.end_L1 * 15) + (match.end_L2 * 20) + (match.end_L3 * 30);
-
-      stats.autoPoints += autoPoints;
-      stats.teleopPoints += teleopPoints;
-      stats.endgamePoints += endgamePoints;
-      stats.totalPoints += autoPoints + teleopPoints + endgamePoints;
+      // Count shooting times (arrays of doubles)
+      const autoShootingCount = match.auto_shooting_times?.length || 0;
+      const teleopShootingCount = match.teleop_shooting_times?.length || 0;
+      
+      // Calculate total shooting time (sum all times in arrays)
+      const autoShootingTotalTime = match.auto_shooting_times?.reduce((sum, time) => sum + time, 0) || 0;
+      const teleopShootingTotalTime = match.teleop_shooting_times?.reduce((sum, time) => sum + time, 0) || 0;
+      
       stats.totalMatches += 1;
       
       // Track individual actions
-      stats.autoL1 += match.auto_L1;
-      stats.autoBump += match.auto_Bump;
-      stats.autoTrench += match.auto_Trench;
-      stats.autoHub += match.auto_Hub;
-      //stats.autoL2 += match.auto_L2;
-      //stats.autoL3 += match.auto_L3;
-      /*stats.autoCoralL4 += match.auto_coral_L4;
-      stats.autoNetAlgae += match.auto_net_algae;
-      stats.autoProcessorAlgae += match.auto_processor_algae;
-      stats.autoAlgaeRemoved += match.auto_algae_removed;
+      stats.autoL1Climb += match.auto_L1_climb;
+      stats.autoAttemptedClimb += match.auto_attempted_climb;
+      stats.autoUsedDepot += match.auto_used_depot;
+      stats.autoUsedOutpost += match.auto_used_outpost;
+      stats.autoBump += match.auto_bump;
+      stats.autoTrench += match.auto_trench;
+      stats.autoShootingCount += autoShootingCount;
+      stats.autoShootingTotalTime += autoShootingTotalTime;
       stats.autoLeave += match.auto_leave;
       
-      stats.teleopCoralL1 += match.teleop_coral_L1;
-      stats.teleopCoralL2 += match.teleop_coral_L2;
-      stats.teleopCoralL3 += match.teleop_coral_L3;
-      stats.teleopCoralL4 += match.teleop_coral_L4;
-      stats.teleopNetAlgae += match.teleop_net_algae;
-      stats.teleopProcessorAlgae += match.teleop_processor_algae;
-      stats.teleopAlgaeRemoved += match.teleop_algae_removed;*/
-      
-      stats.teleopBump += match.teleop_Bump;
-      stats.teleopTrench += match.teleop_Trench;
-      stats.teleopHub += match.teleop_Hub;
+      stats.teleopL1Climb += match.teleop_L1_climb;
+      stats.teleopL2Climb += match.teleop_L2_climb;
+      stats.teleopL3Climb += match.teleop_L3_climb;
+      stats.teleopAttemptedClimb += match.teleop_attempted_climb;
+      stats.teleopUsedDepot += match.teleop_used_depot;
+      stats.teleopUsedOutpost += match.teleop_used_outpost;
+      stats.teleopBump += match.teleop_bump;
+      stats.teleopTrench += match.teleop_trench;
+      stats.teleopShootingCount += teleopShootingCount;
+      stats.teleopShootingTotalTime += teleopShootingTotalTime;
 
-      stats.endL1 += match.end_L1;
-      stats.endL2 += match.end_L2;
-      stats.endL3 += match.end_L3;
+      stats.endPark += match.end_park;
+      stats.endShallow += match.end_shallow;
+      stats.endDeep += match.end_deep;
       
       stats.defenseRating += match.defense_rank;
       stats.drivingRating += match.driving_rank;
-      stats.robotGoal = match.robot_Goal;
     });
 
     // Calculate averages
     return Array.from(statsMap.values()).map(stats => ({
       ...stats,
-      autoPoints: stats.totalMatches > 0 ? stats.autoPoints / stats.totalMatches : 0,
-      teleopPoints: stats.totalMatches > 0 ? stats.teleopPoints / stats.totalMatches : 0,
-      endgamePoints: stats.totalMatches > 0 ? stats.endgamePoints / stats.totalMatches : 0,
-      totalPoints: stats.totalMatches > 0 ? stats.totalPoints / stats.totalMatches : 0,
       // Auto averages
-      autoL1: stats.totalMatches > 0 ? stats.autoL1 / stats.totalMatches : 0,
-      autoTrench: stats.totalMatches > 0 ? stats.autoTrench / stats.totalMatches : 0,
+      autoL1Climb: stats.totalMatches > 0 ? stats.autoL1Climb / stats.totalMatches : 0,
+      autoAttemptedClimb: stats.totalMatches > 0 ? stats.autoAttemptedClimb / stats.totalMatches : 0,
+      autoUsedDepot: stats.totalMatches > 0 ? stats.autoUsedDepot / stats.totalMatches : 0,
+      autoUsedOutpost: stats.totalMatches > 0 ? stats.autoUsedOutpost / stats.totalMatches : 0,
       autoBump: stats.totalMatches > 0 ? stats.autoBump / stats.totalMatches : 0,
-      autoHub: stats.totalMatches > 0 ? stats.autoHub / stats.totalMatches : 0,
-      //autoHubDuration: stats.totalMatches > 0 ? stats.autoHubDuration / stats.totalMatches : [0],
-      //autoL2: stats.totalMatches > 0 ? stats.autoL2 / stats.totalMatches : 0,
-      //autoL2: stats.totalMatches > 0 ? stats.autoL2 / stats.totalMatches : 0,
-      //autoL2: stats.totalMatches > 0 ? stats.autoL2 / stats.totalMatches : 0,
-      //autoL3: stats.totalMatches > 0 ? stats.autoL3 / stats.totalMatches : 0,
-      /*autoCoralL4: stats.totalMatches > 0 ? stats.autoCoralL4 / stats.totalMatches : 0,
-      autoNetAlgae: stats.totalMatches > 0 ? stats.autoNetAlgae / stats.totalMatches : 0,
-      autoProcessorAlgae: stats.totalMatches > 0 ? stats.autoProcessorAlgae / stats.totalMatches : 0,
-      autoAlgaeRemoved: stats.totalMatches > 0 ? stats.autoAlgaeRemoved / stats.totalMatches : 0,
+      autoTrench: stats.totalMatches > 0 ? stats.autoTrench / stats.totalMatches : 0,
+      autoShootingCount: stats.totalMatches > 0 ? stats.autoShootingCount / stats.totalMatches : 0,
+      autoShootingTotalTime: stats.totalMatches > 0 ? stats.autoShootingTotalTime / stats.totalMatches : 0,
       autoLeave: stats.totalMatches > 0 ? stats.autoLeave / stats.totalMatches : 0,
       // Teleop averages
-      teleopCoralL1: stats.totalMatches > 0 ? stats.teleopCoralL1 / stats.totalMatches : 0,
-      teleopCoralL2: stats.totalMatches > 0 ? stats.teleopCoralL2 / stats.totalMatches : 0,
-      teleopCoralL3: stats.totalMatches > 0 ? stats.teleopCoralL3 / stats.totalMatches : 0,
-      teleopCoralL4: stats.totalMatches > 0 ? stats.teleopCoralL4 / stats.totalMatches : 0,
-      teleopNetAlgae: stats.totalMatches > 0 ? stats.teleopNetAlgae / stats.totalMatches : 0,
-      teleopProcessorAlgae: stats.totalMatches > 0 ? stats.teleopProcessorAlgae / stats.totalMatches : 0,
-      teleopAlgaeRemoved: stats.totalMatches > 0 ? stats.teleopAlgaeRemoved / stats.totalMatches : 0,*/
-      teleopTrench: stats.totalMatches > 0 ? stats.teleopTrench / stats.totalMatches : 0,
+      teleopL1Climb: stats.totalMatches > 0 ? stats.teleopL1Climb / stats.totalMatches : 0,
+      teleopL2Climb: stats.totalMatches > 0 ? stats.teleopL2Climb / stats.totalMatches : 0,
+      teleopL3Climb: stats.totalMatches > 0 ? stats.teleopL3Climb / stats.totalMatches : 0,
+      teleopAttemptedClimb: stats.totalMatches > 0 ? stats.teleopAttemptedClimb / stats.totalMatches : 0,
+      teleopUsedDepot: stats.totalMatches > 0 ? stats.teleopUsedDepot / stats.totalMatches : 0,
+      teleopUsedOutpost: stats.totalMatches > 0 ? stats.teleopUsedOutpost / stats.totalMatches : 0,
       teleopBump: stats.totalMatches > 0 ? stats.teleopBump / stats.totalMatches : 0,
-      teleopHub: stats.totalMatches > 0 ? stats.teleopHub / stats.totalMatches : 0,
+      teleopTrench: stats.totalMatches > 0 ? stats.teleopTrench / stats.totalMatches : 0,
+      teleopShootingCount: stats.totalMatches > 0 ? stats.teleopShootingCount / stats.totalMatches : 0,
+      teleopShootingTotalTime: stats.totalMatches > 0 ? stats.teleopShootingTotalTime / stats.totalMatches : 0,
       // Endgame averages
-      endL1: stats.totalMatches > 0 ? stats.endL1 / stats.totalMatches : 0,
-      endL2: stats.totalMatches > 0 ? stats.endL2 / stats.totalMatches : 0,
-      endL3: stats.totalMatches > 0 ? stats.endL3 / stats.totalMatches : 0,
+      endPark: stats.totalMatches > 0 ? stats.endPark / stats.totalMatches : 0,
+      endShallow: stats.totalMatches > 0 ? stats.endShallow / stats.totalMatches : 0,
+      endDeep: stats.totalMatches > 0 ? stats.endDeep / stats.totalMatches : 0,
       // Rating averages
       defenseRating: stats.totalMatches > 0 ? stats.defenseRating / stats.totalMatches : 0,
       drivingRating: stats.totalMatches > 0 ? stats.drivingRating / stats.totalMatches : 0,
-      //robotGoal: stats.totalMatches > 0 ? stats.robotGoal: 0,
     }));
   }, [matchData]);
 
@@ -241,42 +211,40 @@ export default function AnalyticsPage() {
         case 'auto':
           return {
             ...baseData,
-            'L1 (15pts)': parseFloat((team.autoL1 * 15).toFixed(1)),
-            'Hub (1pt)': parseFloat((team.autoHub * 5).toFixed(1)),
-            //'L2 (15pts)': parseFloat((team.autoL2 * 15).toFixed(1)),
-            //'L3 (15pts)': parseFloat((team.autoL3 * 15).toFixed(1)),
-            /*'Coral L4 (7pts)': parseFloat((team.autoCoralL4 * 7).toFixed(1)),
-            'Net Algae (4pts)': parseFloat((team.autoNetAlgae * 4).toFixed(1)),
-            'Processor Algae (6pts)': parseFloat((team.autoProcessorAlgae * 6).toFixed(1)),
-            'Leave (3pts)': parseFloat((team.autoLeave * 3).toFixed(1)),*/
+            'L1 Climb': parseFloat(team.autoL1Climb.toFixed(2)),
+            'Shots': parseFloat(team.autoShootingCount.toFixed(2)),
+            'Shoot Time (s)': parseFloat(team.autoShootingTotalTime.toFixed(1)),
+            'Leave': parseFloat(team.autoLeave.toFixed(2)),
+            'Depot': parseFloat(team.autoUsedDepot.toFixed(2)),
+            'Outpost': parseFloat(team.autoUsedOutpost.toFixed(2)),
           };
         case 'teleop':
           return {
             ...baseData,
-            /*'Coral L1 (2pts)': parseFloat((team.teleopCoralL1 * 2).toFixed(1)),
-            'Coral L2 (3pts)': parseFloat((team.teleopCoralL2 * 3).toFixed(1)),
-            'Coral L3 (4pts)': parseFloat((team.teleopCoralL3 * 4).toFixed(1)),
-            'Coral L4 (5pts)': parseFloat((team.teleopCoralL4 * 5).toFixed(1)),
-            'Net Algae (4pts)': parseFloat((team.teleopNetAlgae * 4).toFixed(1)),
-            'Processor Algae (6pts)': parseFloat((team.teleopProcessorAlgae * 6).toFixed(1)),*/
-            'Hub (1pt)': parseFloat((team.teleopHub).toFixed(1)),
-            'L1 (10pts)': parseFloat((team.endL1 * 10).toFixed(1)),
-            'L2 (20pts)': parseFloat((team.endL2 * 20).toFixed(1)),
-            'L3 (30pts)': parseFloat((team.endL3 * 30).toFixed(1)),
+            'Shots': parseFloat(team.teleopShootingCount.toFixed(2)),
+            'Shoot Time (s)': parseFloat(team.teleopShootingTotalTime.toFixed(1)),
+            'L1 Climb': parseFloat(team.teleopL1Climb.toFixed(2)),
+            'L2 Climb': parseFloat(team.teleopL2Climb.toFixed(2)),
+            'L3 Climb': parseFloat(team.teleopL3Climb.toFixed(2)),
+            'Depot': parseFloat(team.teleopUsedDepot.toFixed(2)),
+            'Outpost': parseFloat(team.teleopUsedOutpost.toFixed(2)),
           };
         case 'endgame':
           return {
             ...baseData,
-            'L1': parseFloat(team.endL1.toFixed(1)),
-            'L2': parseFloat(team.endL2.toFixed(1)),
-            'L3': parseFloat(team.endL3.toFixed(1)),
+            'Park': parseFloat(team.endPark.toFixed(2)),
+            'Shallow': parseFloat(team.endShallow.toFixed(2)),
+            'Deep': parseFloat(team.endDeep.toFixed(2)),
           };
         default: // summary
           return {
             ...baseData,
-            'Auto': parseFloat(team.autoPoints.toFixed(1)),
-            'Teleop': parseFloat(team.teleopPoints.toFixed(1)),
-            'Endgame': parseFloat(team.endgamePoints.toFixed(1)),
+            'Auto Climbs': parseFloat(team.autoL1Climb.toFixed(2)),
+            'Auto Shots': parseFloat(team.autoShootingCount.toFixed(2)),
+            'Auto Time (s)': parseFloat(team.autoShootingTotalTime.toFixed(1)),
+            'Teleop Climbs': parseFloat((team.teleopL1Climb + team.teleopL2Climb + team.teleopL3Climb).toFixed(2)),
+            'Teleop Shots': parseFloat(team.teleopShootingCount.toFixed(2)),
+            'Teleop Time (s)': parseFloat(team.teleopShootingTotalTime.toFixed(1)),
           };
       }
     });
@@ -332,7 +300,7 @@ export default function AnalyticsPage() {
                   </span>
                 </div>
                 <span className="text-sm font-bold text-gray-900">
-                  {entry.value}{activeTab === 'summary' || activeTab === 'auto' || activeTab === 'teleop' ? ' pts' : ''}
+                  {entry.value.toFixed(2)}
                 </span>
               </div>
             ))}
@@ -383,7 +351,13 @@ export default function AnalyticsPage() {
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
               <div className="flex items-center gap-2">
-                <span>{error}</span>
+                <div className="flex-1">
+                  <p className="font-bold">Error Loading Match Data</p>
+                  <p className="text-sm mt-1">{error}</p>
+                  <p className="text-xs mt-2 text-red-600">
+                    Check the browser console (F12) for more details. Make sure data has been uploaded.
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -420,10 +394,13 @@ export default function AnalyticsPage() {
               <Target className="w-6 h-6 text-yellow-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-700">Avg Match Score</p>
+              <p className="text-sm text-gray-700">Avg Actions/Match</p>
               <p className="text-2xl font-bold text-gray-900">
                 {filteredAndSortedTeams.length > 0 ? 
-                  (filteredAndSortedTeams.reduce((sum, team) => sum + team.totalPoints, 0) / filteredAndSortedTeams.length).toFixed(1) : 
+                  (filteredAndSortedTeams.reduce((sum, team) => 
+                    sum + team.autoL1Climb + team.autoShootingCount + team.teleopL1Climb + 
+                    team.teleopL2Climb + team.teleopL3Climb + team.teleopShootingCount, 0
+                  ) / filteredAndSortedTeams.length).toFixed(1) : 
                   '0.0'}
               </p>
             </div>
@@ -514,36 +491,45 @@ export default function AnalyticsPage() {
               interval={0}
             />
             <YAxis 
-              label={{ value: activeTab === 'summary' || activeTab === 'auto' || activeTab === 'teleop' ? 'Average Points' : 'Average Actions', angle: -90, position: 'insideLeft' }}
+              label={{ value: 'Average Count per Match', angle: -90, position: 'insideLeft' }}
             />
             <Tooltip content={<CustomTooltip />} />
             {activeTab === 'summary' && (
               <>
-                <Bar dataKey="Auto" stackId="a" fill="#3B82F6" name="Auto Points" />
-                <Bar dataKey="Teleop" stackId="a" fill="#10B981" name="Teleop Points" />
-                <Bar dataKey="Endgame" stackId="a" fill="#F59E0B" name="Endgame Points" />
+                <Bar dataKey="Auto Climbs" stackId="a" fill="#3B82F6" name="Auto Climbs" />
+                <Bar dataKey="Auto Shots" stackId="a" fill="#10B981" name="Auto Shots" />
+                <Bar dataKey="Auto Time (s)" stackId="a" fill="#06B6D4" name="Auto Time (s)" />
+                <Bar dataKey="Teleop Climbs" stackId="a" fill="#F59E0B" name="Teleop Climbs" />
+                <Bar dataKey="Teleop Shots" stackId="a" fill="#EF4444" name="Teleop Shots" />
+                <Bar dataKey="Teleop Time (s)" stackId="a" fill="#EC4899" name="Teleop Time (s)" />
               </>
             )}
             {activeTab === 'auto' && (
               <>
-                <Bar dataKey="L1 (15pts)" stackId="a" fill="#DDD6FE" name="L1 (15pts)" />
-                <Bar dataKey="Hub (1pt)" stackId="a" fill="#bacdf8" name="L1 (1pt)" />
-                
+                <Bar dataKey="L1 Climb" stackId="a" fill="#3B82F6" name="L1 Climb" />
+                <Bar dataKey="Shots" stackId="a" fill="#10B981" name="Shots" />
+                <Bar dataKey="Shoot Time (s)" stackId="a" fill="#06B6D4" name="Shoot Time (s)" />
+                <Bar dataKey="Leave" stackId="a" fill="#F59E0B" name="Leave" />
+                <Bar dataKey="Depot" stackId="a" fill="#8B5CF6" name="Depot" />
+                <Bar dataKey="Outpost" stackId="a" fill="#EC4899" name="Outpost" />
               </>
             )}
             {activeTab === 'teleop' && (
               <>
-                <Bar dataKey="Hub (1pt)" stackId="a" fill="#fceded" name="L1 (1pt)" />
-                <Bar dataKey="L1 (10pts)" stackId="a" fill="#FECACA" name="L1 (10pts)" />
-                <Bar dataKey="L2 (20pts)" stackId="a" fill="#F87171" name="L2 (20pts)" />
-                <Bar dataKey="L3 (30pts)" stackId="a" fill="#DC2626" name="L3 (30pts)" />
+                <Bar dataKey="Shots" stackId="a" fill="#8B5CF6" name="Shots" />
+                <Bar dataKey="Shoot Time (s)" stackId="a" fill="#06B6D4" name="Shoot Time (s)" />
+                <Bar dataKey="L1 Climb" stackId="a" fill="#FECACA" name="L1 Climb" />
+                <Bar dataKey="L2 Climb" stackId="a" fill="#F87171" name="L2 Climb" />
+                <Bar dataKey="L3 Climb" stackId="a" fill="#DC2626" name="L3 Climb" />
+                <Bar dataKey="Depot" stackId="a" fill="#10B981" name="Depot" />
+                <Bar dataKey="Outpost" stackId="a" fill="#F59E0B" name="Outpost" />
               </>
             )}
             {activeTab === 'endgame' && (
               <>
-                <Bar dataKey="L1" stackId="a" fill="#FECACA" name="L1" />
-                <Bar dataKey="L2" stackId="a" fill="#F87171" name="L2" />
-                <Bar dataKey="L3" stackId="a" fill="#DC2626" name="L3" />
+                <Bar dataKey="Park" stackId="a" fill="#FCD34D" name="Park" />
+                <Bar dataKey="Shallow" stackId="a" fill="#F59E0B" name="Shallow" />
+                <Bar dataKey="Deep" stackId="a" fill="#D97706" name="Deep" />
               </>
             )}
           </BarChart>
@@ -559,14 +545,17 @@ export default function AnalyticsPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
                 <SortableHeader field="teamNumber" label="Team" />
-                <SortableHeader field="autoPoints" label="Auto Avg" />
-                <SortableHeader field="teleopPoints" label="Teleop Avg" />
-                <SortableHeader field="endgamePoints" label="Endgame Avg" />
-                <SortableHeader field="totalPoints" label="Total Avg" />
                 <SortableHeader field="totalMatches" label="Matches" />
+                <SortableHeader field="autoL1Climb" label="Auto Climb" />
+                <SortableHeader field="autoShootingCount" label="Auto Shots" />
+                <SortableHeader field="autoShootingTotalTime" label="Auto Time (s)" />
+                <SortableHeader field="teleopL1Climb" label="T-L1" />
+                <SortableHeader field="teleopL2Climb" label="T-L2" />
+                <SortableHeader field="teleopL3Climb" label="T-L3" />
+                <SortableHeader field="teleopShootingCount" label="T-Shots" />
+                <SortableHeader field="teleopShootingTotalTime" label="T-Time (s)" />
                 <SortableHeader field="defenseRating" label="Defense" />
                 <SortableHeader field="drivingRating" label="Driving" />
-                <SortableHeader field="robotGoal" label="Robot Goal" />
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -584,14 +573,17 @@ export default function AnalyticsPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">Team {team.teamNumber}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.autoPoints.toFixed(1)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.teleopPoints.toFixed(1)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.endgamePoints.toFixed(1)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{team.totalPoints.toFixed(1)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{team.totalMatches}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.autoL1Climb.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.autoShootingCount.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.autoShootingTotalTime.toFixed(1)}s</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.teleopL1Climb.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.teleopL2Climb.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.teleopL3Climb.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.teleopShootingCount.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.teleopShootingTotalTime.toFixed(1)}s</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.defenseRating.toFixed(1)}/10</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.drivingRating.toFixed(1)}/10</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.robotGoal}/</td>
                 </tr>
               ))}
             </tbody>

@@ -23,10 +23,10 @@ const RoostHub = () => {
   const fileInputRef = useRef(null);
 
   const mockMatches = [
-    { id: 1, team: 'Team Alpha', score: '24-18', level: 'Level 3 Coral', date: '2024-08-13', status: 'completed' },
-    { id: 2, team: 'Team Beta', score: '31-12', level: 'Level 2 Coral', date: '2024-08-13', status: 'completed' },
-    { id: 3, team: 'Team Gamma', score: '19-22', level: 'Level 4 Coral', date: '2024-08-12', status: 'completed' },
-    { id: 4, team: 'Team Delta', score: 'In Progress', level: 'Level 1 Coral', date: '2024-08-13', status: 'active' },
+    { id: 1, team: 'Team Alpha', score: '24-18', level: 'Level 1 Climb', date: '2024-08-13', status: 'completed' },
+    { id: 2, team: 'Team Beta', score: '31-12', level: 'Level 2 Climb', date: '2024-08-13', status: 'completed' },
+    { id: 3, team: 'Team Gamma', score: '19-22', level: 'Level 3 Climb', date: '2024-08-12', status: 'completed' },
+    { id: 4, team: 'Team Delta', score: 'In Progress', level: 'Level 1 Climb', date: '2024-08-13', status: 'active' },
   ];
 
   const handleConnect = () => {

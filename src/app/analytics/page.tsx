@@ -18,7 +18,6 @@ interface TeamStats {
   autoTrench: number;
   autoShootingCount: number;
   autoShootingTotalTime: number; // Total seconds spent shooting
-  autoLeave: number;
   // Teleop actions (averages)
   teleopL1Climb: number;
   teleopL2Climb: number;
@@ -31,9 +30,9 @@ interface TeamStats {
   teleopShootingCount: number;
   teleopShootingTotalTime: number; // Total seconds spent shooting
   // Endgame actions (averages)
-  endPark: number;
-  endShallow: number;
-  endDeep: number;
+  //endNone: number;
+  endClimb: number;
+  endShooting: number;
   // Ratings
   defenseRating: number;
   drivingRating: number;
@@ -78,7 +77,6 @@ export default function AnalyticsPage() {
           autoTrench: 0,
           autoShootingCount: 0,
           autoShootingTotalTime: 0,
-          autoLeave: 0,
           // Teleop actions
           teleopL1Climb: 0,
           teleopL2Climb: 0,
@@ -91,9 +89,9 @@ export default function AnalyticsPage() {
           teleopShootingCount: 0,
           teleopShootingTotalTime: 0,
           // Endgame actions
-          endPark: 0,
-          endShallow: 0,
-          endDeep: 0,
+          //endNone: 0,
+          endClimb: 0,
+          endShooting: 0,
           // Ratings
           defenseRating: 0,
           drivingRating: 0,
@@ -121,7 +119,7 @@ export default function AnalyticsPage() {
       stats.autoTrench += match.auto_trench;
       stats.autoShootingCount += autoShootingCount;
       stats.autoShootingTotalTime += autoShootingTotalTime;
-      stats.autoLeave += match.auto_leave;
+      //stats.autoLeave += match.auto_leave;
       
       stats.teleopL1Climb += match.teleop_L1_climb;
       stats.teleopL2Climb += match.teleop_L2_climb;
@@ -134,9 +132,9 @@ export default function AnalyticsPage() {
       stats.teleopShootingCount += teleopShootingCount;
       stats.teleopShootingTotalTime += teleopShootingTotalTime;
 
-      stats.endPark += match.end_park;
-      stats.endShallow += match.end_shallow;
-      stats.endDeep += match.end_deep;
+      //stats.endPark += match.end_park;
+      stats.endClimb += match.end_climb;
+      stats.endShooting += match.end_shooting;
       
       stats.defenseRating += match.defense_rank;
       stats.drivingRating += match.driving_rank;
@@ -154,7 +152,7 @@ export default function AnalyticsPage() {
       autoTrench: stats.totalMatches > 0 ? stats.autoTrench / stats.totalMatches : 0,
       autoShootingCount: stats.totalMatches > 0 ? stats.autoShootingCount / stats.totalMatches : 0,
       autoShootingTotalTime: stats.totalMatches > 0 ? stats.autoShootingTotalTime / stats.totalMatches : 0,
-      autoLeave: stats.totalMatches > 0 ? stats.autoLeave / stats.totalMatches : 0,
+      //autoLeave: stats.totalMatches > 0 ? stats.autoLeave / stats.totalMatches : 0,
       // Teleop averages
       teleopL1Climb: stats.totalMatches > 0 ? stats.teleopL1Climb / stats.totalMatches : 0,
       teleopL2Climb: stats.totalMatches > 0 ? stats.teleopL2Climb / stats.totalMatches : 0,
@@ -167,9 +165,9 @@ export default function AnalyticsPage() {
       teleopShootingCount: stats.totalMatches > 0 ? stats.teleopShootingCount / stats.totalMatches : 0,
       teleopShootingTotalTime: stats.totalMatches > 0 ? stats.teleopShootingTotalTime / stats.totalMatches : 0,
       // Endgame averages
-      endPark: stats.totalMatches > 0 ? stats.endPark / stats.totalMatches : 0,
-      endShallow: stats.totalMatches > 0 ? stats.endShallow / stats.totalMatches : 0,
-      endDeep: stats.totalMatches > 0 ? stats.endDeep / stats.totalMatches : 0,
+      //endPark: stats.totalMatches > 0 ? stats.endPark / stats.totalMatches : 0,
+      endClimb: stats.totalMatches > 0 ? stats.endClimb / stats.totalMatches : 0,
+      endShooting: stats.totalMatches > 0 ? stats.endShooting / stats.totalMatches : 0,
       // Rating averages
       defenseRating: stats.totalMatches > 0 ? stats.defenseRating / stats.totalMatches : 0,
       drivingRating: stats.totalMatches > 0 ? stats.drivingRating / stats.totalMatches : 0,
@@ -214,7 +212,6 @@ export default function AnalyticsPage() {
             'L1 Climb': parseFloat(team.autoL1Climb.toFixed(2)),
             'Shots': parseFloat(team.autoShootingCount.toFixed(2)),
             'Shoot Time (s)': parseFloat(team.autoShootingTotalTime.toFixed(1)),
-            'Leave': parseFloat(team.autoLeave.toFixed(2)),
             'Depot': parseFloat(team.autoUsedDepot.toFixed(2)),
             'Outpost': parseFloat(team.autoUsedOutpost.toFixed(2)),
           };
@@ -232,9 +229,9 @@ export default function AnalyticsPage() {
         case 'endgame':
           return {
             ...baseData,
-            'Park': parseFloat(team.endPark.toFixed(2)),
-            'Shallow': parseFloat(team.endShallow.toFixed(2)),
-            'Deep': parseFloat(team.endDeep.toFixed(2)),
+            //'Park': parseFloat(team.endPark.toFixed(2)),
+            'Climb': parseFloat(team.endClimb.toFixed(2)),
+            'Shooting': parseFloat(team.endShooting.toFixed(2)),
           };
         default: // summary
           return {
@@ -509,7 +506,6 @@ export default function AnalyticsPage() {
                 <Bar dataKey="L1 Climb" stackId="a" fill="#3B82F6" name="L1 Climb" />
                 <Bar dataKey="Shots" stackId="a" fill="#10B981" name="Shots" />
                 <Bar dataKey="Shoot Time (s)" stackId="a" fill="#06B6D4" name="Shoot Time (s)" />
-                <Bar dataKey="Leave" stackId="a" fill="#F59E0B" name="Leave" />
                 <Bar dataKey="Depot" stackId="a" fill="#8B5CF6" name="Depot" />
                 <Bar dataKey="Outpost" stackId="a" fill="#EC4899" name="Outpost" />
               </>
@@ -527,9 +523,8 @@ export default function AnalyticsPage() {
             )}
             {activeTab === 'endgame' && (
               <>
-                <Bar dataKey="Park" stackId="a" fill="#FCD34D" name="Park" />
-                <Bar dataKey="Shallow" stackId="a" fill="#F59E0B" name="Shallow" />
-                <Bar dataKey="Deep" stackId="a" fill="#D97706" name="Deep" />
+                <Bar dataKey="Climb" stackId="a" fill="#F59E0B" name="Climb" />
+                <Bar dataKey="Shooting" stackId="a" fill="#D97706" name="Shooting" />
               </>
             )}
           </BarChart>

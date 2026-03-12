@@ -141,7 +141,7 @@ export default function AnalyticsPage() {
       
       stats.defenseRating += match.defense_rank;
       stats.drivingRating += match.driving_rank;
-      stats.accuracyRating += match.accuracy_rating;
+      stats.accuracyRating += (match.accuracy_rating ?? 0);
     });
 
     // Calculate averages

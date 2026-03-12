@@ -175,7 +175,7 @@ export default function AnalyticsPage() {
       // Rating averages
       defenseRating: stats.totalMatches > 0 ? stats.defenseRating / stats.totalMatches : 0,
       drivingRating: stats.totalMatches > 0 ? stats.drivingRating / stats.totalMatches : 0,
-      accuracyRating: stats.totalMatches > 0 ? stats.accuracyRating / stats.totalMatches : 0,
+      accuracyRating: stats.totalMatches > 0 ? stats.accuracyRating / stats.totalMatches : 0
     }));
   }, [matchData]);
 

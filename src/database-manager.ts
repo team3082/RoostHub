@@ -111,6 +111,7 @@ class DatabaseManager {
             disabled TEXT,
             defense_rank INTEGER,
             driving_rank INTEGER,
+            accuracy_rating INTEGER,
             notes TEXT
           );
         `);
@@ -173,8 +174,8 @@ class DatabaseManager {
           teleop_L1_climb, teleop_L2_climb, teleop_L3_climb, teleop_attempted_climb,
           teleop_used_depot, teleop_used_outpost, teleop_bump, teleop_trench, teleop_shooting_times,
           end_none, end_climb, end_shooting,
-          disabled, defense_rank, driving_rank, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          disabled, defense_rank, driving_rank, accuracy_rating, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         docId, data.is_uploaded || 0, data.match_number, data.team_number, data.position, data.scouter_name,
         data.auto_L1_climb, data.auto_attempted_climb, data.auto_used_depot, data.auto_used_outpost,
@@ -182,7 +183,7 @@ class DatabaseManager {
         data.teleop_L1_climb, data.teleop_L2_climb, data.teleop_L3_climb, data.teleop_attempted_climb,
         data.teleop_used_depot, data.teleop_used_outpost, data.teleop_bump, data.teleop_trench, this.serializeShootingTimes(data.teleop_shooting_times),
         data.end_none, data.end_climb, data.end_shooting,
-        data.disabled, data.defense_rank, data.driving_rank, data.notes
+        data.disabled, data.defense_rank, data.driving_rank, data.accuracy_rating, data.notes
       ]);
       
       console.log('Match data added successfully');
@@ -265,7 +266,8 @@ class DatabaseManager {
           AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
           AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
-          AVG(driving_rank) as avg_driving_rank
+          AVG(driving_rank) as avg_driving_rank,
+          AVG(accuracy_rating) as avg_accuracy_rating
         FROM match_data 
         WHERE team_number = ?
         GROUP BY team_number
@@ -285,7 +287,8 @@ class DatabaseManager {
           AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
           AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
-          AVG(driving_rank) as avg_driving_rank
+          AVG(driving_rank) as avg_driving_rank,
+          AVG(accuracy_rating) as avg_accuracy_rating
         FROM match_data 
         GROUP BY team_number
         ORDER BY team_number
@@ -305,7 +308,8 @@ class DatabaseManager {
           AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
           AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
-          AVG(driving_rank) as avg_driving_rank
+          AVG(driving_rank) as avg_driving_rank,
+          AVG(accuracy_rating) as avg_accuracy_rating
         FROM match_data 
         GROUP BY team_number
         ORDER BY (endGameClimb_success_rate + autoClimb_success_rate) DESC
@@ -600,6 +604,7 @@ class DatabaseManager {
         'Disabled',
         'Defense Rank',
         'Driving Rank',
+        'Accuracy Rating',
         'Notes'
       ];
 
@@ -631,6 +636,7 @@ class DatabaseManager {
         match.disabled || '',
         match.defense_rank || 0,
         match.driving_rank || 0,
+        match.accuracy_rating || 0,
         match.notes || ''
       ]);
 

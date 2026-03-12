@@ -28,6 +28,7 @@ export interface MatchData {
   disabled: string;
   defense_rank: number;
   driving_rank: number;
+  accuracy_rating: number;
   notes: string;
 }
 

@@ -36,6 +36,8 @@ interface TeamStats {
   // Ratings
   defenseRating: number;
   drivingRating: number;
+  accuracyRating: number;
+  
 }
 
 type SortField = keyof TeamStats;

@@ -585,7 +585,7 @@ export default function AnalyticsPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.teleopShootingTotalTime.toFixed(1)}s</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.defenseRating.toFixed(1)}/10</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.drivingRating.toFixed(1)}/10</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.accuracyRating.toFixed(1)}/10</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.accuracyRating.toFixed(1)}/100</td>
                 </tr>
               ))}
             </tbody>

@@ -10,5 +10,5 @@ export interface TeamStats {
   endGameClimb_success_rate: number;
   avg_defense_rank: number;
   avg_driving_rank: number;
-  avg_accuracy_rating: number;
+  avg_accuracy_rank: number;
 }

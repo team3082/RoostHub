@@ -96,6 +96,7 @@ class DatabaseManager {
             auto_bump INTEGER,
             auto_trench INTEGER,
             auto_shooting_times TEXT,
+            auto_leave INTEGER,
             teleop_L1_climb INTEGER,
             teleop_L2_climb INTEGER,
             teleop_L3_climb INTEGER,
@@ -105,13 +106,13 @@ class DatabaseManager {
             teleop_bump INTEGER,
             teleop_trench INTEGER,
             teleop_shooting_times TEXT,
-            end_none INTEGER,       
-            end_climb INTEGER,      
+            end_climb INTEGER,
             end_shooting INTEGER,
+            end_none INTEGER,
             disabled TEXT,
             defense_rank INTEGER,
             driving_rank INTEGER,
-            accuracy_rating INTEGER,
+            accuracy_rank INTEGER,
             notes TEXT
           );
         `);
@@ -129,20 +130,24 @@ class DatabaseManager {
         console.log('Creating pit_data table...');
         await db.execute(`
           CREATE TABLE pit_data (
-            doc_ID TEXT PRIMARY KEY,
-            is_uploaded INTEGER DEFAULT 0,
+            doc_ID TEXT NOT NULL,
+            is_uploaded INTEGER NOT NULL,
             team_number INTEGER NOT NULL,
             scouter_name TEXT NOT NULL,
             drivetrain TEXT NOT NULL,
-            Bump INTEGER DEFAULT 0,
-            Trench INTEGER DEFAULT 0,
-            L1 INTEGER DEFAULT 0,
-            L2 INTEGER DEFAULT 0,
-            L3 INTEGER DEFAULT 0,
-            preferred_starting_zone TEXT DEFAULT '',
-            preferred_end_status TEXT DEFAULT '',
-            notes TEXT DEFAULT '',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            cannot_climb_auto INTEGER NOT NULL,
+            climb_auto_L1 INTEGER NOT NULL,
+            cannot_climb_L1 INTEGER NOT NULL,
+            climb_L1 INTEGER NOT NULL,
+            climb_L2 INTEGER NOT NULL,
+            climb_L3 INTEGER NOT NULL,
+            bump INTEGER NOT NULL,
+            trench INTEGER NOT NULL,
+            prefers_auto_climb_level INTEGER NOT NULL,
+            prefers_climb_level INTEGER NOT NULL,
+            preferred_starting_zone INTEGER NOT NULL,
+            preferred_end_status INTEGER NOT NULL,
+            notes TEXT
           );
         `);
         
@@ -165,26 +170,31 @@ class DatabaseManager {
       const docId = data.doc_ID || `match_${data.team_number}_${data.match_number}_${Date.now()}`;
       
       console.log('Adding match data for team:', data.team_number, 'match:', data.match_number);
-      
-      await db.execute(`
+      console.log("Full data", data);
+
+      await db.execute(
+      `
         INSERT OR REPLACE INTO match_data (
           doc_ID, is_uploaded, match_number, team_number, position, scouter_name,
           auto_L1_climb, auto_attempted_climb, auto_used_depot, auto_used_outpost,
-          auto_bump, auto_trench, auto_shooting_times,
+          auto_bump, auto_trench, auto_shooting_times, auto_leave,
           teleop_L1_climb, teleop_L2_climb, teleop_L3_climb, teleop_attempted_climb,
           teleop_used_depot, teleop_used_outpost, teleop_bump, teleop_trench, teleop_shooting_times,
-          end_none, end_climb, end_shooting,
-          disabled, defense_rank, driving_rank, accuracy_rating, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
+          end_climb, end_shooting, end_none,
+          disabled, defense_rank, driving_rank, accuracy_rank, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
         docId, data.is_uploaded || 0, data.match_number, data.team_number, data.position, data.scouter_name,
         data.auto_L1_climb, data.auto_attempted_climb, data.auto_used_depot, data.auto_used_outpost,
         data.auto_bump, data.auto_trench, this.serializeShootingTimes(data.auto_shooting_times),
+        data.auto_leave,
         data.teleop_L1_climb, data.teleop_L2_climb, data.teleop_L3_climb, data.teleop_attempted_climb,
         data.teleop_used_depot, data.teleop_used_outpost, data.teleop_bump, data.teleop_trench, this.serializeShootingTimes(data.teleop_shooting_times),
-        data.end_none, data.end_climb, data.end_shooting,
-        data.disabled, data.defense_rank, data.driving_rank, data.accuracy_rating, data.notes
-      ]);
+        data.end_climb, data.end_shooting, data.end_none,
+        data.disabled, data.defense_rank, data.driving_rank, data.accuracy_rank, data.notes
+      ]
+    );
       
       console.log('Match data added successfully');
     });
@@ -267,7 +277,7 @@ class DatabaseManager {
           AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
           AVG(driving_rank) as avg_driving_rank,
-          AVG(accuracy_rating) as avg_accuracy_rating
+          AVG(accuracy_rank) as avg_accuracy_rank
         FROM match_data 
         WHERE team_number = ?
         GROUP BY team_number
@@ -288,7 +298,7 @@ class DatabaseManager {
           AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
           AVG(driving_rank) as avg_driving_rank,
-          AVG(accuracy_rating) as avg_accuracy_rating
+          AVG(accuracy_rank) as avg_accuracy_rank
         FROM match_data 
         GROUP BY team_number
         ORDER BY team_number
@@ -309,7 +319,7 @@ class DatabaseManager {
           AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
           AVG(driving_rank) as avg_driving_rank,
-          AVG(accuracy_rating) as avg_accuracy_rating
+          AVG(accuracy_rank) as avg_accuracy_rank
         FROM match_data 
         GROUP BY team_number
         ORDER BY (endGameClimb_success_rate + autoClimb_success_rate) DESC
@@ -604,7 +614,7 @@ class DatabaseManager {
         'Disabled',
         'Defense Rank',
         'Driving Rank',
-        'Accuracy Rating',
+        'Accuracy Ranking',
         'Notes'
       ];
 
@@ -636,7 +646,7 @@ class DatabaseManager {
         match.disabled || '',
         match.defense_rank || 0,
         match.driving_rank || 0,
-        match.accuracy_rating || 0,
+        match.accuracy_rank || 0,
         match.notes || ''
       ]);
 

@@ -36,6 +36,7 @@ interface TeamStats {
   // Ratings
   defenseRating: number;
   drivingRating: number;
+  accuracyRating: number;
 }
 
 type SortField = keyof TeamStats;
@@ -95,6 +96,7 @@ export default function AnalyticsPage() {
           // Ratings
           defenseRating: 0,
           drivingRating: 0,
+          accuracyRating: 0,
         });
       }
 
@@ -138,6 +140,7 @@ export default function AnalyticsPage() {
       
       stats.defenseRating += match.defense_rank;
       stats.drivingRating += match.driving_rank;
+      stats.accuracyRating += (match.accuracy_rank != -10 ? match.accuracy_rank : 0);
     });
 
     // Calculate averages
@@ -171,6 +174,7 @@ export default function AnalyticsPage() {
       // Rating averages
       defenseRating: stats.totalMatches > 0 ? stats.defenseRating / stats.totalMatches : 0,
       drivingRating: stats.totalMatches > 0 ? stats.drivingRating / stats.totalMatches : 0,
+      accuracyRating: stats.totalMatches > 0 ? stats.accuracyRating / stats.totalMatches / 10 : 0,
     }));
   }, [matchData]);
 
@@ -551,6 +555,7 @@ export default function AnalyticsPage() {
                 <SortableHeader field="teleopShootingTotalTime" label="T-Time (s)" />
                 <SortableHeader field="defenseRating" label="Defense" />
                 <SortableHeader field="drivingRating" label="Driving" />
+                <SortableHeader field="accuracyRating" label="Accuracy" />
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -579,6 +584,7 @@ export default function AnalyticsPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.teleopShootingTotalTime.toFixed(1)}s</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.defenseRating.toFixed(1)}/10</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.drivingRating.toFixed(1)}/10</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.accuracyRating.toFixed(1)}/10</td>
                 </tr>
               ))}
             </tbody>

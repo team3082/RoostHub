@@ -84,34 +84,38 @@ class DatabaseManager {
         await db.execute(`
           CREATE TABLE match_data (
             doc_ID TEXT,
-            is_uploaded INTEGER,
-            match_number INTEGER,
-            team_number INTEGER,
-            position TEXT,         
-            scouter_name TEXT,
-            auto_L1_climb INTEGER,
-            auto_attempted_climb INTEGER,
-            auto_used_depot INTEGER,
-            auto_used_outpost INTEGER,
-            auto_bump INTEGER,
-            auto_trench INTEGER,
-            auto_shooting_times TEXT,
-            teleop_L1_climb INTEGER,
-            teleop_L2_climb INTEGER,
-            teleop_L3_climb INTEGER,
-            teleop_attempted_climb INTEGER,
-            teleop_used_depot INTEGER,
-            teleop_used_outpost INTEGER,
-            teleop_bump INTEGER,
-            teleop_trench INTEGER,
-            teleop_shooting_times TEXT,
-            end_none INTEGER,       
-            end_climb INTEGER,      
-            end_shooting INTEGER,
-            disabled TEXT,
-            defense_rank INTEGER,
-            driving_rank INTEGER,
-            notes TEXT
+              is_uploaded INTEGER,
+              match_number INTEGER,
+              team_number INTEGER,
+              position TEXT,         
+              scouter_name TEXT,
+              auto_L1_climb INTEGER,
+              auto_attempted_climb INTEGER,
+              auto_used_depot INTEGER,
+              auto_used_outpost INTEGER,
+              auto_bump INTEGER,
+              auto_trench INTEGER,
+              auto_shooting_times TEXT,
+              auto_leave INTEGER,
+              teleop_L1_climb INTEGER,
+              teleop_L2_climb INTEGER,
+              teleop_L3_climb INTEGER,
+              teleop_attempted_climb INTEGER,
+              teleop_used_depot INTEGER,
+              teleop_used_outpost INTEGER,
+              teleop_bump INTEGER,
+              teleop_trench INTEGER,
+              teleop_shooting_times TEXT,
+              end_climb INTEGER,
+              end_shooting INTEGER,
+              end_none INTEGER,
+              disabled TEXT,
+              defense_rank INTEGER,
+              driving_rank INTEGER,
+              accuracy_rank INTEGER,
+              no_shooting BOOLEAN,
+              fuel_per_second TEXT,
+              notes TEXT
           );
         `);
         
@@ -133,11 +137,18 @@ class DatabaseManager {
             team_number INTEGER NOT NULL,
             scouter_name TEXT NOT NULL,
             drivetrain TEXT NOT NULL,
-            Bump INTEGER DEFAULT 0,
-            Trench INTEGER DEFAULT 0,
-            L1 INTEGER DEFAULT 0,
-            L2 INTEGER DEFAULT 0,
-            L3 INTEGER DEFAULT 0,
+            hopper_capacity INTEGER DEFAULT 0,
+            cannot_climb_auto INTEGER DEFAULT 0,
+            climb_auto_L1 INTEGER DEFAULT 0,
+            cannot_climb_L1 INTEGER DEFAULT 0,
+            climb_L1 INTEGER DEFAULT 0,
+            climb_L2 INTEGER DEFAULT 0,
+            climb_L3 INTEGER DEFAULT 0,
+            bump INTEGER DEFAULT 0,
+            trench INTEGER DEFAULT 0,
+            shooter TEXT DEFAULT '',
+            prefers_auto_climb_level INTEGER DEFAULT 0,
+            prefers_climb_level INTEGER DEFAULT 0,
             preferred_starting_zone TEXT DEFAULT '',
             preferred_end_status TEXT DEFAULT '',
             notes TEXT DEFAULT '',
@@ -167,22 +178,48 @@ class DatabaseManager {
       
       await db.execute(`
         INSERT OR REPLACE INTO match_data (
-          doc_ID, is_uploaded, match_number, team_number, position, scouter_name,
-          auto_L1_climb, auto_attempted_climb, auto_used_depot, auto_used_outpost,
-          auto_bump, auto_trench, auto_shooting_times,
-          teleop_L1_climb, teleop_L2_climb, teleop_L3_climb, teleop_attempted_climb,
-          teleop_used_depot, teleop_used_outpost, teleop_bump, teleop_trench, teleop_shooting_times,
-          end_none, end_climb, end_shooting,
-          disabled, defense_rank, driving_rank, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          doc_ID,
+              is_uploaded,
+              match_number,
+              team_number,
+              position,         
+              scouter_name,
+              auto_L1_climb,
+              auto_attempted_climb,
+              auto_used_depot,
+              auto_used_outpost,
+              auto_bump,
+              auto_trench,
+              auto_shooting_times,
+              auto_leave,
+              teleop_L1_climb,
+              teleop_L2_climb,
+              teleop_L3_climb,
+              teleop_attempted_climb,
+              teleop_used_depot,
+              teleop_used_outpost,
+              teleop_bump,
+              teleop_trench,
+              teleop_shooting_times,
+              end_climb,
+              end_shooting,
+              end_none,
+              disabled,
+              defense_rank,
+              driving_rank,
+              accuracy_rank,
+              no_shooting,
+              fuel_per_second,
+              notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         docId, data.is_uploaded || 0, data.match_number, data.team_number, data.position, data.scouter_name,
         data.auto_L1_climb, data.auto_attempted_climb, data.auto_used_depot, data.auto_used_outpost,
-        data.auto_bump, data.auto_trench, this.serializeShootingTimes(data.auto_shooting_times),
+        data.auto_bump, data.auto_trench, this.serializeShootingTimes(data.auto_shooting_times), data.auto_leave,
         data.teleop_L1_climb, data.teleop_L2_climb, data.teleop_L3_climb, data.teleop_attempted_climb,
         data.teleop_used_depot, data.teleop_used_outpost, data.teleop_bump, data.teleop_trench, this.serializeShootingTimes(data.teleop_shooting_times),
-        data.end_none, data.end_climb, data.end_shooting,
-        data.disabled, data.defense_rank, data.driving_rank, data.notes
+        data.end_climb, data.end_shooting, data.end_none,
+        data.disabled, data.defense_rank, data.driving_rank, data.accuracy_rank, data.no_shooting, data.fuel_per_second, data.notes
       ]);
       
       console.log('Match data added successfully');
@@ -229,12 +266,33 @@ class DatabaseManager {
       
       await db.execute(`
         INSERT OR REPLACE INTO pit_data (
-          doc_ID, is_uploaded, team_number, scouter_name, drivetrain,
-          Bump, Trench, L1, L2, L3, preferred_starting_zone, preferred_end_status, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          doc_ID,
+            is_uploaded,
+            team_number,
+            scouter_name,
+            drivetrain,
+            hopper_capacity,
+            cannot_climb_auto,
+            climb_auto_L1,
+            cannot_climb_L1,
+            climb_L1,
+            climb_L2,
+            climb_L3,
+            bump,
+            trench,
+            shooter,
+            prefers_auto_climb_level,
+            prefers_climb_level,
+            preferred_starting_zone,
+            preferred_end_status,
+            notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         docId, data.is_uploaded || 0, data.team_number, data.scouter_name, data.drivetrain,
-        data.Bump, data.Trench, data.L1, data.L2, data.L3, data.preferred_starting_zone,
+        data.hopper_capacity, data.cannot_climb_auto,
+        data.climb_auto_L1, data.climb_L1, data.climb_L2, data.climb_L3, 
+        data.bump, data.trench, data.shooter, data.prefers_auto_climb_level,
+        data.prefers_climb_level, data.preferred_starting_zone,
         data.preferred_end_status, data.notes || ''
       ]);
     });
@@ -265,7 +323,8 @@ class DatabaseManager {
           AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
           AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
-          AVG(driving_rank) as avg_driving_rank
+          AVG(driving_rank) as avg_driving_rank,
+          AVG(accuracy_rank) as avg_accuracy_rank
         FROM match_data 
         WHERE team_number = ?
         GROUP BY team_number
@@ -285,7 +344,8 @@ class DatabaseManager {
           AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
           AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
-          AVG(driving_rank) as avg_driving_rank
+          AVG(driving_rank) as avg_driving_rank,
+          AVG(accuracy_rank) as avg_accuracy_rank
         FROM match_data 
         GROUP BY team_number
         ORDER BY team_number
@@ -305,7 +365,8 @@ class DatabaseManager {
           AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
           AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
-          AVG(driving_rank) as avg_driving_rank
+          AVG(driving_rank) as avg_driving_rank,
+          AVG(accuracy_rank) as avg_accuracy_rank
         FROM match_data 
         GROUP BY team_number
         ORDER BY (endGameClimb_success_rate + autoClimb_success_rate) DESC
@@ -524,11 +585,11 @@ class DatabaseManager {
       const csvData = pitData.map(pit => [
         pit.team_number,
         pit.drivetrain || '',
-        pit.Bump > 0 ? 'Yes' : 'No',
-        pit.Trench > 0 ? 'Yes' : 'No',
-        pit.L1 > 0 ? 'Yes' : 'No',
-        pit.L2 > 0 ? 'Yes' : 'No',
-        pit.L3 > 0 ? 'Yes' : 'No',
+        pit.bump > 0 ? 'Yes' : 'No',
+        pit.trench > 0 ? 'Yes' : 'No',
+        pit.climb_L1 > 0 ? 'Yes' : 'No',
+        pit.climb_L2 > 0 ? 'Yes' : 'No',
+        pit.climb_L3 > 0 ? 'Yes' : 'No',
         pit.preferred_starting_zone || '',
         pit.preferred_end_status || '',
         pit.notes || '',
@@ -600,6 +661,7 @@ class DatabaseManager {
         'Disabled',
         'Defense Rank',
         'Driving Rank',
+        'Accuracy Rating',
         'Notes'
       ];
 
@@ -631,6 +693,7 @@ class DatabaseManager {
         match.disabled || '',
         match.defense_rank || 0,
         match.driving_rank || 0,
+        match.accuracy_rank || 0,
         match.notes || ''
       ]);
 

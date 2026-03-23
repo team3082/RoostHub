@@ -125,7 +125,7 @@ export default function PitPage() {
             <div>
               <p className="text-sm text-gray-800">Can Climb</p>
               <p className="text-2xl font-bold text-gray-900">
-                {pitData.filter(p =>  p.L1 > 0 || p.L2 > 0 || p.L3 > 0).length}
+                {pitData.filter(p =>  p.climb_L1 > 0 || p.climb_L2 > 0 || p.climb_L3 > 0).length}
               </p>
             </div>
           </div>
@@ -199,15 +199,15 @@ export default function PitPage() {
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-gray-800">Bump:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.Bump)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.Bump)}</span>
+                                {getCapabilityIcon(pit.bump)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.bump)}</span>
                               </div>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-gray-800">Trench:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.Trench)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.Trench)}</span>
+                                {getCapabilityIcon(pit.trench)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.trench)}</span>
                               </div>
                             </div>
                           </div>
@@ -254,22 +254,22 @@ export default function PitPage() {
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-gray-800">L1:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.L1)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.L1)}</span>
+                                {getCapabilityIcon(pit.climb_L1)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.climb_L1)}</span>
                               </div>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-gray-800">L2:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.L2)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.L2)}</span>
+                                {getCapabilityIcon(pit.climb_L2)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.climb_L2)}</span>
                               </div>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className="text-sm text-gray-800">L3:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.L3)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.L3)}</span>
+                                {getCapabilityIcon(pit.climb_L3)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.climb_L3)}</span>
                               </div>
                             </div>
 

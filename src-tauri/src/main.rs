@@ -1,7 +1,9 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE OR IT WILL CAUSE A LOT OF ISSUES(DO NOT ASK HOW THAT WAS FOUND OUT)
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
+
 use std::process::{Command, Stdio};
 use std::time::Duration;
 use tokio::time::sleep;
@@ -16,6 +18,7 @@ use tokio::sync::broadcast;
 static TABLET_CONNECTED: AtomicBool = AtomicBool::new(false);
 static mut APP_HANDLE: Option<AppHandle> = None;
 
+#[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 #[derive(Clone, Debug)]
@@ -74,12 +77,15 @@ async fn adb_forwarding_loop(app_handle: AppHandle, ws_tx: Arc<broadcast::Sender
     let mut last_connected_state = false;
     
     loop {
-        if let Ok(output) = Command::new("adb")
-            .arg("devices")
-            .creation_flags(CREATE_NO_WINDOW)
+        let mut cmd = Command::new("adb");
+            cmd.arg("devices")
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output() {
+            .stderr(Stdio::piped());
+
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(CREATE_NO_WINDOW);
+
+        if let Ok(output) = cmd.output() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             let devices: Vec<&str> = stdout
                 .lines()
@@ -105,10 +111,13 @@ async fn adb_forwarding_loop(app_handle: AppHandle, ws_tx: Arc<broadcast::Sender
             if is_connected {
                 let _ = Command::new("adb")
                     .args(&["reverse", "tcp:5000", "tcp:5000"])
-                    .creation_flags(CREATE_NO_WINDOW)
                     .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .status();
+                    .stderr(Stdio::piped());
+
+                    #[cfg(target_os = "windows")]
+                    cmd.creation_flags(CREATE_NO_WINDOW);
+                    
+                    let _ = cmd.status();
             }
         } else {
             if last_connected_state {

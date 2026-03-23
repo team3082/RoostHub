@@ -182,9 +182,9 @@ export default function AnalyticsPage() {
       endClimb: stats.totalMatches > 0 ? stats.endClimb / stats.totalMatches : 0,
       endShooting: stats.totalMatches > 0 ? stats.endShooting / stats.totalMatches : 0,
       // Rating averages
-      defenseRating: stats.totalMatches > 0 ? stats.defenseRating / stats.matchesWithDefense : 0,
+      defenseRating: stats.totalMatches > 0 ? stats.defenseRating / (stats.matchesWithDefense == 0 ? 1 : stats.matchesWithDefense) : 0,
       drivingRating: stats.totalMatches > 0 ? stats.drivingRating / stats.totalMatches : 0,
-      accuracyRating: stats.totalMatches > 0 ? stats.accuracyRating / stats.matchesWithAccuracy / 10 : 0,
+      accuracyRating: stats.totalMatches > 0 ? stats.accuracyRating / (stats.matchesWithAccuracy == 0 ? 1 : stats.matchesWithAccuracy) / 10 : 0,
     }));
   }, [matchData]);
 

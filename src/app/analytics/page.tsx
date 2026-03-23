@@ -37,6 +37,9 @@ interface TeamStats {
   defenseRating: number;
   drivingRating: number;
   accuracyRating: number;
+
+  matchesWithAccuracy: number;
+  matchesWithDefense: number;
 }
 
 type SortField = keyof TeamStats;
@@ -97,6 +100,10 @@ export default function AnalyticsPage() {
           defenseRating: 0,
           drivingRating: 0,
           accuracyRating: 0,
+
+          matchesWithAccuracy: 0,
+          matchesWithDefense: 0,
+
         });
       }
 
@@ -141,6 +148,9 @@ export default function AnalyticsPage() {
       stats.defenseRating += match.defense_rank;
       stats.drivingRating += match.driving_rank;
       stats.accuracyRating += (match.accuracy_rank != -10 ? match.accuracy_rank : 0);
+
+      stats.matchesWithAccuracy += (match.accuracy_rank != -10 ? 1 : 0);
+      stats.matchesWithDefense += (match.defense_rank != 0 ? 1 : 0);
     });
 
     // Calculate averages
@@ -172,9 +182,9 @@ export default function AnalyticsPage() {
       endClimb: stats.totalMatches > 0 ? stats.endClimb / stats.totalMatches : 0,
       endShooting: stats.totalMatches > 0 ? stats.endShooting / stats.totalMatches : 0,
       // Rating averages
-      defenseRating: stats.totalMatches > 0 ? stats.defenseRating / stats.totalMatches : 0,
+      defenseRating: stats.totalMatches > 0 ? stats.defenseRating / stats.matchesWithDefense : 0,
       drivingRating: stats.totalMatches > 0 ? stats.drivingRating / stats.totalMatches : 0,
-      accuracyRating: stats.totalMatches > 0 ? stats.accuracyRating / stats.totalMatches / 10 : 0,
+      accuracyRating: stats.totalMatches > 0 ? stats.accuracyRating / stats.matchesWithAccuracy / 10 : 0,
     }));
   }, [matchData]);
 

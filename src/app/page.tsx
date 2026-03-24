@@ -31,7 +31,7 @@ const RoostHub = () => {
 
   const handleConnect = () => {
     setConnectionStatus('connecting');
-    setTimeout(() => {
+    setTimeout(() => {           
       setConnectionStatus('connected');
     }, 4000);
   };

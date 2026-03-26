@@ -5,19 +5,17 @@ export interface PitData {
   team_number: number;
   scouter_name: string;
   drivetrain: string;
-  /*coral_L1: number;
-  coral_L2: number;
-  coral_L3: number;
-  coral_L4: number;
-  remove_algae: number;
-  processor_algae: number;
-  net_algae: number;*/
-  Trench: number;
-  Bump: number;
-  L1: number;
-  L2: number;
-  L3: number;
-  preferred_starting_zone: string;
-  preferred_end_status: string;
+  cannot_climb_auto: number;
+  climb_auto_L1: number;
+  cannot_climb_L1: number;
+  climb_L1: number;
+  climb_L2: number;
+  climb_L3: number;
+  bump: number;
+  trench: number;
+  prefers_auto_climb_level: number;
+  prefers_climb_level: number;
+  preferred_starting_zone: number;
+  preferred_end_status: number;
   notes?: string;
 }

@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useCallback, CSSProperties } from 'react'
 import { useDatabaseStore } from '@/stores/database';
 import ScoreEntryPanel, { MatchFuelScore } from '@/components/analytics/ScoreEntryPanel';
 import {
-  Trophy,
   Target,
   TrendingUp,
   Users,
@@ -16,6 +15,17 @@ import {
   Zap,
   Shield,
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ErrorBar,
+  Cell,
+} from 'recharts';
 import { C } from '../../components/analytics/theme';
 
 import {
@@ -83,6 +93,43 @@ export default function AnalyticsPage() {
 
     return filtered;
   }, [teamStats, search, sortKey, sortDir]);
+
+  const rankedFuelData = useMemo(() => {
+    return teamStats
+      .map((team) => {
+        const fitted = hasFittedBps(team);
+        const empiricalFuel = team.autoShots + team.teleopShots;
+        const estimatedFuel = fitted ? team.bps * Math.max(team.totalShootTime, 0) : empiricalFuel;
+
+        return {
+          teamNumber: team.teamNumber,
+          estimatedFuel,
+          bps: fitted ? team.bps : 0,
+          bpsError: [
+            Math.max(0, team.bps - team.bpsCiLow),
+            Math.max(0, team.bpsCiHigh - team.bps),
+          ] as [number, number],
+          fitted,
+        };
+      })
+      .sort((a, b) => b.estimatedFuel - a.estimatedFuel)
+      .slice(0, 15);
+  }, [teamStats]);
+
+  const rankedBpsData = useMemo(() => {
+    return teamStats
+      .filter(hasFittedBps)
+      .map((team) => ({
+        teamNumber: team.teamNumber,
+        bps: team.bps,
+        bpsError: [
+          Math.max(0, team.bps - team.bpsCiLow),
+          Math.max(0, team.bpsCiHigh - team.bps),
+        ] as [number, number],
+      }))
+      .sort((a, b) => b.bps - a.bps)
+      .slice(0, 15);
+  }, [teamStats]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -173,7 +220,7 @@ export default function AnalyticsPage() {
             />
           </div>
           <div className="flex border rounded-lg overflow-hidden" style={{ borderColor: C.border }}>
-            {(['cards', 'table'] as const).map((v) => (
+            {(['cards', 'table', 'charts'] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setViewMode(v)}
@@ -381,6 +428,94 @@ export default function AnalyticsPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {viewMode === 'charts' && (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <div className="rounded-xl border p-4" style={{ borderColor: C.border, background: C.white }}>
+                <div className="mb-3">
+                  <h3 className="text-sm font-black uppercase tracking-wider" style={{ color: C.text }}>
+                    Ranked Estimated Fuel
+                  </h3>
+                  <p className="text-xs" style={{ color: C.sub }}>
+                    Top 15 teams by estimated fuel contribution per match
+                  </p>
+                </div>
+
+                <div className="h-[420px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={rankedFuelData}
+                      layout="vertical"
+                      margin={{ top: 8, right: 20, left: 10, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                      <XAxis type="number" stroke={C.sub} tick={{ fontSize: 12 }} />
+                      <YAxis
+                        dataKey="teamNumber"
+                        type="category"
+                        width={52}
+                        stroke={C.sub}
+                        tick={{ fontSize: 12, fontWeight: 700 }}
+                      />
+                      <Tooltip
+                        cursor={{ fill: '#f4efff' }}
+                        formatter={(value: number) => value.toFixed(2)}
+                        labelFormatter={(label: number) => `Team ${label}`}
+                      />
+                      <Bar dataKey="estimatedFuel" radius={[0, 6, 6, 0]}>
+                        {rankedFuelData.map((entry, index) => (
+                          <Cell
+                            key={`fuel-${entry.teamNumber}`}
+                            fill={index < 3 ? C.purple : '#8A7CC9'}
+                            fillOpacity={entry.fitted ? 1 : 0.55}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="rounded-xl border p-4" style={{ borderColor: C.border, background: C.white }}>
+                <div className="mb-3">
+                  <h3 className="text-sm font-black uppercase tracking-wider" style={{ color: C.text }}>
+                    Ranked BPS with CI
+                  </h3>
+                  <p className="text-xs" style={{ color: C.sub }}>
+                    Top 15 fitted teams by balls-per-second with 95% confidence error bars
+                  </p>
+                </div>
+
+                <div className="h-[420px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={rankedBpsData}
+                      layout="vertical"
+                      margin={{ top: 8, right: 20, left: 10, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+                      <XAxis type="number" stroke={C.sub} tick={{ fontSize: 12 }} domain={[0, 'dataMax']} />
+                      <YAxis
+                        dataKey="teamNumber"
+                        type="category"
+                        width={52}
+                        stroke={C.sub}
+                        tick={{ fontSize: 12, fontWeight: 700 }}
+                      />
+                      <Tooltip
+                        cursor={{ fill: '#f4efff' }}
+                        formatter={(value: number) => value.toFixed(3)}
+                        labelFormatter={(label: number) => `Team ${label}`}
+                      />
+                      <Bar dataKey="bps" fill={C.purple} radius={[0, 6, 6, 0]}>
+                        <ErrorBar dataKey="bpsError" width={4} strokeWidth={1.5} stroke={C.purpleMid} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
           )}
 

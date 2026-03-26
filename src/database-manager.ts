@@ -61,6 +61,177 @@ class DatabaseManager {
     }
   }
 
+  private parseCSV(csvContent: string): string[][] {
+    const rows: string[][] = [];
+    let currentRow: string[] = [];
+    let currentField = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < csvContent.length; i++) {
+      const char = csvContent[i];
+      const nextChar = i + 1 < csvContent.length ? csvContent[i + 1] : '';
+
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          currentField += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+
+      if (char === ',' && !inQuotes) {
+        currentRow.push(currentField);
+        currentField = '';
+        continue;
+      }
+
+      if ((char === '\n' || char === '\r') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') {
+          i++;
+        }
+
+        currentRow.push(currentField);
+        if (currentRow.some((cell) => cell.trim() !== '')) {
+          rows.push(currentRow);
+        }
+        currentRow = [];
+        currentField = '';
+        continue;
+      }
+
+      currentField += char;
+    }
+
+    currentRow.push(currentField);
+    if (currentRow.some((cell) => cell.trim() !== '')) {
+      rows.push(currentRow);
+    }
+
+    return rows;
+  }
+
+  private parseNumber(value: string, fallback = 0): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private parseRequiredNumber(value: string, field: string, rowNumber: number): number {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      throw new Error(`Invalid ${field} on CSV row ${rowNumber}`);
+    }
+    return parsed;
+  }
+
+  private parseBinaryFlag(value: string, fallback = 0): number {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '') {
+      return fallback;
+    }
+    if (['1', 'true', 'yes', 'y'].includes(normalized)) {
+      return 1;
+    }
+    if (['0', 'false', 'no', 'n'].includes(normalized)) {
+      return 0;
+    }
+    return this.parseNumber(value, fallback) > 0 ? 1 : 0;
+  }
+
+  private parseBooleanFlag(value: string, fallback = false): boolean {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === '') {
+      return fallback;
+    }
+    if (['1', 'true', 'yes', 'y'].includes(normalized)) {
+      return true;
+    }
+    if (['0', 'false', 'no', 'n'].includes(normalized)) {
+      return false;
+    }
+    return this.parseNumber(value, fallback ? 1 : 0) > 0;
+  }
+
+  private parseShootingTimes(value: string): number[] {
+    if (!value || value.trim() === '') {
+      return [];
+    }
+
+    return value
+      .split(';')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => this.parseNumber(part, NaN))
+      .filter((part) => Number.isFinite(part));
+  }
+
+  private parseCSVMatchRow(headers: string[], row: string[], rowNumber: number): MatchData {
+    const headerMap = new Map<string, string>();
+    headers.forEach((header, index) => {
+      headerMap.set(header.trim().toLowerCase(), (row[index] ?? '').trim());
+    });
+
+    const getField = (fieldNames: string[], fallback = ''): string => {
+      for (const fieldName of fieldNames) {
+        const value = headerMap.get(fieldName.toLowerCase());
+        if (value !== undefined) {
+          return value;
+        }
+      }
+      return fallback;
+    };
+
+    const match_number = this.parseRequiredNumber(
+      getField(['Match Number', 'match_number']),
+      'match number',
+      rowNumber
+    );
+    const team_number = this.parseRequiredNumber(
+      getField(['Team Number', 'team_number']),
+      'team number',
+      rowNumber
+    );
+
+    const doc_ID = getField(['doc_ID', 'Doc ID'], `csv_${team_number}_${match_number}_${rowNumber}`);
+
+    return {
+      doc_ID,
+      is_uploaded: this.parseNumber(getField(['is_uploaded', 'Is Uploaded']), 0),
+      match_number,
+      team_number,
+      position: getField(['Position', 'position']),
+      scouter_name: getField(['Scouter Name', 'scouter_name']),
+      auto_L1_climb: this.parseNumber(getField(['Auto L1 Climb', 'auto_L1_climb']), 0),
+      auto_attempted_climb: this.parseNumber(getField(['Auto Attempted Climb', 'auto_attempted_climb']), 0),
+      auto_used_depot: this.parseNumber(getField(['Auto Used Depot', 'auto_used_depot']), 0),
+      auto_used_outpost: this.parseNumber(getField(['Auto Used Outpost', 'auto_used_outpost']), 0),
+      auto_bump: this.parseNumber(getField(['Auto Bump', 'auto_bump']), 0),
+      auto_trench: this.parseNumber(getField(['Auto Trench', 'auto_trench']), 0),
+      auto_shooting_times: this.parseShootingTimes(getField(['Auto Shooting Times', 'auto_shooting_times'])),
+      auto_leave: this.parseBinaryFlag(getField(['Auto Leave', 'auto_leave']), 0),
+      teleop_L1_climb: this.parseNumber(getField(['Teleop L1 Climb', 'teleop_L1_climb']), 0),
+      teleop_L2_climb: this.parseNumber(getField(['Teleop L2 Climb', 'teleop_L2_climb']), 0),
+      teleop_L3_climb: this.parseNumber(getField(['Teleop L3 Climb', 'teleop_L3_climb']), 0),
+      teleop_attempted_climb: this.parseNumber(getField(['Teleop Attempted Climb', 'teleop_attempted_climb']), 0),
+      teleop_used_depot: this.parseNumber(getField(['Teleop Used Depot', 'teleop_used_depot']), 0),
+      teleop_used_outpost: this.parseNumber(getField(['Teleop Used Outpost', 'teleop_used_outpost']), 0),
+      teleop_bump: this.parseNumber(getField(['Teleop Bump', 'teleop_bump']), 0),
+      teleop_trench: this.parseNumber(getField(['Teleop Trench', 'teleop_trench']), 0),
+      teleop_shooting_times: this.parseShootingTimes(getField(['Teleop Shooting Times', 'teleop_shooting_times'])),
+      end_climb: this.parseBinaryFlag(getField(['End Climb', 'end_climb']), 0),
+      end_shooting: this.parseBinaryFlag(getField(['End Shooting', 'end_shooting']), 0),
+      end_none: this.parseBinaryFlag(getField(['End None', 'end_none']), 0),
+      disabled: getField(['Disabled', 'disabled']),
+      defense_rank: this.parseNumber(getField(['Defense Rank', 'defense_rank']), 0),
+      driving_rank: this.parseNumber(getField(['Driving Rank', 'driving_rank']), 0),
+      accuracy_rank: this.parseNumber(getField(['Accuracy Rating', 'Accuracy Rank', 'accuracy_rank']), 0),
+      no_shooting: this.parseBooleanFlag(getField(['No Shooting', 'no_shooting']), false),
+      fuel_per_second: getField(['Fuel Per Second', 'fuel_per_second']),
+      notes: getField(['Notes', 'notes'])
+    };
+  }
+
   private parseMatchDataFromDB(data: RawMatchData): MatchData {
     return {
       ...data,
@@ -722,6 +893,125 @@ class DatabaseManager {
       link.click();
       document.body.removeChild(link);
       console.log('Match data exported');
+    });
+  }
+
+  async importMatchDataFromCSV(csvContent: string): Promise<{ imported: number; matchDeleted: number; pitDeleted: number }> {
+    const rows = this.parseCSV(csvContent);
+    if (rows.length < 2) {
+      throw new Error('CSV must include a header row and at least one data row');
+    }
+
+    const headers = rows[0].map((header, index) => {
+      const cleaned = header.trim();
+      return index === 0 ? cleaned.replace(/^\uFEFF/, '') : cleaned;
+    });
+
+    const normalizedHeaders = new Set(headers.map((header) => header.toLowerCase()));
+    if (!normalizedHeaders.has('match number') && !normalizedHeaders.has('match_number')) {
+      throw new Error('CSV is missing required "Match Number" column');
+    }
+    if (!normalizedHeaders.has('team number') && !normalizedHeaders.has('team_number')) {
+      throw new Error('CSV is missing required "Team Number" column');
+    }
+
+    const dataRows = rows.slice(1).filter((row) => row.some((cell) => cell.trim() !== ''));
+    if (dataRows.length === 0) {
+      throw new Error('CSV has no data rows to import');
+    }
+
+    const parsedRows = dataRows.map((row, index) => this.parseCSVMatchRow(headers, row, index + 2));
+
+    return this.withConnection(async (db) => {
+      await db.execute('BEGIN TRANSACTION');
+      try {
+        const matchDeleteResult = await db.execute('DELETE FROM match_data');
+        const pitDeleteResult = await db.execute('DELETE FROM pit_data');
+
+        for (const data of parsedRows) {
+          await db.execute(`
+            INSERT OR REPLACE INTO match_data (
+              doc_ID,
+              is_uploaded,
+              match_number,
+              team_number,
+              position,
+              scouter_name,
+              auto_L1_climb,
+              auto_attempted_climb,
+              auto_used_depot,
+              auto_used_outpost,
+              auto_bump,
+              auto_trench,
+              auto_shooting_times,
+              auto_leave,
+              teleop_L1_climb,
+              teleop_L2_climb,
+              teleop_L3_climb,
+              teleop_attempted_climb,
+              teleop_used_depot,
+              teleop_used_outpost,
+              teleop_bump,
+              teleop_trench,
+              teleop_shooting_times,
+              end_climb,
+              end_shooting,
+              end_none,
+              disabled,
+              defense_rank,
+              driving_rank,
+              accuracy_rank,
+              no_shooting,
+              fuel_per_second,
+              notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            data.doc_ID,
+            data.is_uploaded || 0,
+            data.match_number,
+            data.team_number,
+            data.position,
+            data.scouter_name,
+            data.auto_L1_climb,
+            data.auto_attempted_climb,
+            data.auto_used_depot,
+            data.auto_used_outpost,
+            data.auto_bump,
+            data.auto_trench,
+            this.serializeShootingTimes(data.auto_shooting_times),
+            data.auto_leave,
+            data.teleop_L1_climb,
+            data.teleop_L2_climb,
+            data.teleop_L3_climb,
+            data.teleop_attempted_climb,
+            data.teleop_used_depot,
+            data.teleop_used_outpost,
+            data.teleop_bump,
+            data.teleop_trench,
+            this.serializeShootingTimes(data.teleop_shooting_times),
+            data.end_climb,
+            data.end_shooting,
+            data.end_none,
+            data.disabled,
+            data.defense_rank,
+            data.driving_rank,
+            data.accuracy_rank,
+            data.no_shooting ? 1 : 0,
+            data.fuel_per_second,
+            data.notes
+          ]);
+        }
+
+        await db.execute('COMMIT');
+        return {
+          imported: parsedRows.length,
+          matchDeleted: matchDeleteResult.rowsAffected,
+          pitDeleted: pitDeleteResult.rowsAffected
+        };
+      } catch (error) {
+        await db.execute('ROLLBACK');
+        throw error;
+      }
     });
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDatabaseStore } from '@/stores/database';
 // ...existing code... (tablet connection not used on this page)
 import { 
@@ -11,7 +11,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
-  Download
+  Download,
+  Upload
 } from 'lucide-react';
 
 interface MatchSummary {
@@ -26,14 +27,18 @@ export default function MatchPitData() {
     matchData,
     loading,
     error,
+    uploadStatus,
     loadAllMatchData,
     clearError,
-    exportMatchDataToCSV
+    clearUploadStatus,
+    exportMatchDataToCSV,
+    importMatchDataFromCSV
   } = useDatabaseStore();
 
   const [matchSummaries, setMatchSummaries] = useState<MatchSummary[]>([]);
   const [totalMatches, setTotalMatches] = useState(0);
   const [totalTeamsCount, setTotalTeamsCount] = useState(0);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadAllMatchData();
@@ -85,6 +90,35 @@ export default function MatchPitData() {
     }
   };
 
+  const triggerCSVImport = () => {
+    const confirmed = window.confirm(
+      'Importing a CSV will delete all existing match and pit records before inserting the CSV rows. Continue?'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    clearUploadStatus();
+    csvInputRef.current?.click();
+  };
+
+  const handleCSVFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      const csvContent = await file.text();
+      await importMatchDataFromCSV(csvContent);
+    } catch (error) {
+      console.error('Failed to import CSV:', error);
+    } finally {
+      event.target.value = '';
+    }
+  };
+
   const getMatchCompletionStatus = (match: MatchSummary) => {
     if (match.total_teams >= 6) {
       return { status: 'complete', color: 'text-green-600', bg: 'bg-green-100' };
@@ -108,6 +142,14 @@ export default function MatchPitData() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto flex flex-col" style={{ height: 'calc(100vh - 120px)' }}>
+      <input
+        ref={csvInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={handleCSVFileSelected}
+      />
+
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6">
           <div className="flex items-center gap-2">
@@ -118,8 +160,18 @@ export default function MatchPitData() {
         </div>
       )}
 
+      {uploadStatus && (
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5" />
+            <span>{uploadStatus}</span>
+            <button onClick={clearUploadStatus} className="ml-auto text-green-700 hover:text-green-900">×</button>
+          </div>
+        </div>
+      )}
+
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <div className="bg-white p-6 rounded-xl shadow-lg border">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-100 rounded-lg">
@@ -156,6 +208,17 @@ export default function MatchPitData() {
           </div>
         </div>
         
+        <div className="bg-white p-6 rounded-xl shadow-lg border">
+          <button
+            onClick={triggerCSVImport}
+            className="text-lg font-bold w-full h-full bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={loading}
+          >
+            <Upload className="w-4 h-4" />
+            Import CSV
+          </button>
+        </div>
+
         <div className="bg-white p-6 rounded-xl shadow-lg border">
           <button
             onClick={downloadCSV}

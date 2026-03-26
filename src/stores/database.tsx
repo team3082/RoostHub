@@ -32,6 +32,7 @@ interface DatabaseStore {
   deleteAllData: () => Promise<void>;
   exportPitDataToCSV: () => Promise<void>;
   exportMatchDataToCSV: () => Promise<void>;
+  importMatchDataFromCSV: (csvContent: string) => Promise<void>;
   clearError: () => void;
   clearUploadStatus: () => void;
 }
@@ -318,6 +319,27 @@ export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
       set({ 
         loading: false,
         error: error instanceof Error ? error.message : 'Failed to export match data' 
+      });
+      throw error;
+    }
+  },
+
+  importMatchDataFromCSV: async (csvContent: string) => {
+    set({ loading: true, error: null, uploadStatus: 'Importing CSV and replacing database records...' });
+    try {
+      const result = await get().dbManager.importMatchDataFromCSV(csvContent);
+      const message = `CSV import complete: ${result.imported} match rows imported. Cleared ${result.matchDeleted} old match rows and ${result.pitDeleted} old pit rows.`;
+
+      set({ loading: false, uploadStatus: message });
+
+      await get().loadAllMatchData();
+      await get().loadAllPitData();
+      await get().loadTeamStats();
+    } catch (error) {
+      set({
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to import CSV',
+        uploadStatus: null
       });
       throw error;
     }

@@ -50,7 +50,7 @@ export type SortKey =
   | 'totalMatches'
   | 'totalShootTime';
 
-export type ViewMode = 'cards' | 'table';
+export type ViewMode = 'cards' | 'table' | 'charts';
 
 export const NOT_ENOUGH_DATA_MODEL = 'Not enough data';
 

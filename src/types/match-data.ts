@@ -12,7 +12,8 @@ export interface MatchData {
   auto_used_outpost: number;
   auto_bump: number;
   auto_trench: number;
-  auto_shooting_times: number[]; // Array of doubles (seconds) - stored as JSON in DB
+  auto_shooting_times: number[]; // Stored as JSON TEXT in DB
+  auto_leave: number;
   teleop_L1_climb: number;
   teleop_L2_climb: number;
   teleop_L3_climb: number;
@@ -21,14 +22,14 @@ export interface MatchData {
   teleop_used_outpost: number;
   teleop_bump: number;
   teleop_trench: number;
-  teleop_shooting_times: number[]; // Array of doubles (seconds) - stored as JSON in DB
-  end_none: number;
+  teleop_shooting_times: number[]; // Stored as JSON TEXT in DB
   end_climb: number;
   end_shooting: number;
+  end_none: number;
   disabled: string;
   defense_rank: number;
   driving_rank: number;
-  accuracy_rating: number;
+  accuracy_rank: number;
   notes: string;
 }
 

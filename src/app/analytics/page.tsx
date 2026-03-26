@@ -347,13 +347,17 @@ export default function AnalyticsPage() {
 
       const stats = statsMap.get(match.team_number)!;
       
-      // Count shooting times (arrays of doubles)
-      const autoShootingCount = match.auto_shooting_times?.length || 0;
-      const teleopShootingCount = match.teleop_shooting_times?.length || 0;
+      // Count shooting times (arrays of doubles) with null checks
+      const autoShootingCount = (match.auto_shooting_times && Array.isArray(match.auto_shooting_times)) ? match.auto_shooting_times.length : 0;
+      const teleopShootingCount = (match.teleop_shooting_times && Array.isArray(match.teleop_shooting_times)) ? match.teleop_shooting_times.length : 0;
       
-      // Calculate total shooting time (sum all times in arrays)
-      const autoShootingTotalTime = match.auto_shooting_times?.reduce((sum, time) => sum + time, 0) || 0;
-      const teleopShootingTotalTime = match.teleop_shooting_times?.reduce((sum, time) => sum + time, 0) || 0;
+      // Calculate total shooting time (sum all times in arrays) with null checks
+      const autoShootingTotalTime = (match.auto_shooting_times && Array.isArray(match.auto_shooting_times)) 
+        ? match.auto_shooting_times.reduce((sum, time) => sum + (time || 0), 0) 
+        : 0;
+      const teleopShootingTotalTime = (match.teleop_shooting_times && Array.isArray(match.teleop_shooting_times)) 
+        ? match.teleop_shooting_times.reduce((sum, time) => sum + (time || 0), 0) 
+        : 0;
       
       stats.totalMatches += 1;
       
@@ -366,7 +370,6 @@ export default function AnalyticsPage() {
       stats.autoTrench += match.auto_trench;
       stats.autoShootingCount += autoShootingCount;
       stats.autoShootingTotalTime += autoShootingTotalTime;
-      //stats.autoLeave += match.auto_leave;
       
       stats.teleopL1Climb += match.teleop_L1_climb;
       stats.teleopL2Climb += match.teleop_L2_climb;
@@ -379,52 +382,12 @@ export default function AnalyticsPage() {
       stats.teleopShootingCount += teleopShootingCount;
       stats.teleopShootingTotalTime += teleopShootingTotalTime;
 
-      //stats.endPark += match.end_park;
       stats.endClimb += match.end_climb;
       stats.endShooting += match.end_shooting;
       
       stats.defenseRating += match.defense_rank;
       stats.drivingRating += match.driving_rank;
-      stats.accuracyRating += match.accuracy_rating;
-      
-      // SHOOTING METRICS - Calculate from existing data
-      const totalShots = autoShootingCount + teleopShootingCount;
-      const totalShootingTime = autoShootingTotalTime + teleopShootingTotalTime;
-      
-      // Calculate shooting speed metrics for this match
-      const matchShotsPerSecond = totalShootingTime > 0 ? totalShots / totalShootingTime : 0;
-      // For now, assume 80% accuracy until we have shots_missed field
-      const estimatedSuccessfulShots = totalShots * 0.8;
-      const matchBallsPerSecond = totalShootingTime > 0 ? estimatedSuccessfulShots / totalShootingTime : 0;
-      
-      stats.shotsPerSecond += matchShotsPerSecond;
-      stats.ballsPerSecond += matchBallsPerSecond;
-      
-      // PASSING METRICS - Calculate from existing data
-      // Estimate passing time as non-shooting teleop time (135s - shooting time - other actions)
-      const teleopDuration = 135; // Standard teleop period in seconds
-      const estimatedPassingTime = Math.max(0, teleopDuration - teleopShootingTotalTime);
-      
-      stats.passingTime += estimatedPassingTime;
-      // Estimate passing attempts based on depot/outpost usage
-      const estimatedPassingAttempts = match.teleop_used_depot + match.teleop_used_outpost;
-      stats.passingAttempts += estimatedPassingAttempts;
-      stats.passingPerMatch += estimatedPassingAttempts * 0.7; // Assume 70% success rate
-      
-      // ROBOT ABILITIES - Calculate from existing data
-      stats.canCrossBump += match.teleop_bump > 0 ? 1 : 0;
-      stats.canCrossTrench += match.teleop_trench > 0 ? 1 : 0;
-      stats.hasEndgameAbility += match.end_climb > 0 || match.end_shooting > 0 ? 1 : 0;
-      // Turret capability - estimate based on shooting performance
-      stats.hasTurret += (matchShotsPerSecond > 1.0) ? 1 : 0;
-      
-      // DEFENSE METRICS - Calculate from existing data
-      stats.matchesPlayingDefense += match.defense_rank > 5 ? 1 : 0; // Assume high defense rank means they played defense
-      stats.disabledMatches += match.disabled === 'yes' ? 1 : 0;
-      // Estimate defensive actions based on rankings
-      stats.stealingCount += match.defense_rank > 7 ? 2 : (match.defense_rank > 5 ? 1 : 0);
-      stats.pinningCount += match.defense_rank > 8 ? 1 : 0;
-      stats.blockingCount += match.defense_rank > 6 ? 1 : 0;
+      stats.accuracyRating += (match.accuracy_rank || 0);
     });
 
     // Calculate averages
@@ -439,7 +402,6 @@ export default function AnalyticsPage() {
       autoTrench: stats.totalMatches > 0 ? stats.autoTrench / stats.totalMatches : 0,
       autoShootingCount: stats.totalMatches > 0 ? stats.autoShootingCount / stats.totalMatches : 0,
       autoShootingTotalTime: stats.totalMatches > 0 ? stats.autoShootingTotalTime / stats.totalMatches : 0,
-      //autoLeave: stats.totalMatches > 0 ? stats.autoLeave / stats.totalMatches : 0,
       // Teleop averages
       teleopL1Climb: stats.totalMatches > 0 ? stats.teleopL1Climb / stats.totalMatches : 0,
       teleopL2Climb: stats.totalMatches > 0 ? stats.teleopL2Climb / stats.totalMatches : 0,
@@ -452,7 +414,6 @@ export default function AnalyticsPage() {
       teleopShootingCount: stats.totalMatches > 0 ? stats.teleopShootingCount / stats.totalMatches : 0,
       teleopShootingTotalTime: stats.totalMatches > 0 ? stats.teleopShootingTotalTime / stats.totalMatches : 0,
       // Endgame averages
-      //endPark: stats.totalMatches > 0 ? stats.endPark / stats.totalMatches : 0,
       endClimb: stats.totalMatches > 0 ? stats.endClimb / stats.totalMatches : 0,
       endShooting: stats.totalMatches > 0 ? stats.endShooting / stats.totalMatches : 0,
       // Rating averages
@@ -544,7 +505,7 @@ export default function AnalyticsPage() {
         case 'endgame':
           return {
             ...baseData,
-            //'Park': parseFloat(team.endPark.toFixed(2)),
+          //'Park': parseFloat(team.endPark.toFixed(2)),
             'Climb': parseFloat(team.endClimb.toFixed(2)),
             'Shooting': parseFloat(team.endShooting.toFixed(2)),
           };

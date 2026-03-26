@@ -1,0 +1,18 @@
+export const C = {
+  purple: '#32327C',
+  purpleLight: '#4f4faa',
+  purplePale: '#eef0ff',
+  purpleMid: '#6366c4',
+  white: '#ffffff',
+  bg: '#f7f7f7',
+  card: '#ffffff',
+  border: '#e4e6f0',
+  text: '#1a1a3e',
+  sub: '#6b7280',
+  muted: '#9ca3af',
+  gold: '#d97706',
+  silver: '#6b7280',
+  bronze: '#b45309',
+  red: '#dc2626',
+  yellow: '#ca8a04',
+};

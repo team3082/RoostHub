@@ -211,7 +211,7 @@ class DatabaseManager {
               no_shooting,
               fuel_per_second,
               notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         docId, data.is_uploaded || 0, data.match_number, data.team_number, data.position, data.scouter_name,
         data.auto_L1_climb, data.auto_attempted_climb, data.auto_used_depot, data.auto_used_outpost,
@@ -290,7 +290,7 @@ class DatabaseManager {
       `, [
         docId, data.is_uploaded || 0, data.team_number, data.scouter_name, data.drivetrain,
         data.hopper_capacity, data.cannot_climb_auto,
-        data.climb_auto_L1, data.climb_L1, data.climb_L2, data.climb_L3, 
+        data.climb_auto_L1, data.cannot_climb_L1, data.climb_L1, data.climb_L2, data.climb_L3, 
         data.bump, data.trench, data.shooter, data.prefers_auto_climb_level,
         data.prefers_climb_level, data.preferred_starting_zone,
         data.preferred_end_status, data.notes || ''

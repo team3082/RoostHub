@@ -1,5 +1,5 @@
 import Database from '@tauri-apps/plugin-sql';
-import { MatchData, PitData, TeamStats } from './types';
+import { MatchData, RawMatchData, PitData, TeamStats } from './types';
 
 /**
  * DatabaseManager - uses connection-per-operation to avoid connection pool issues
@@ -45,6 +45,30 @@ class DatabaseManager {
     }
   }
 
+  // Helper methods for JSON array conversion
+  private serializeShootingTimes(times: number[]): string {
+    return JSON.stringify(times || []);
+  }
+
+  private deserializeShootingTimes(times: string | number[]): number[] {
+    if (Array.isArray(times)) {
+      return times;
+    }
+    try {
+      return JSON.parse(times || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  private parseMatchDataFromDB(data: RawMatchData): MatchData {
+    return {
+      ...data,
+      auto_shooting_times: this.deserializeShootingTimes(data.auto_shooting_times),
+      teleop_shooting_times: this.deserializeShootingTimes(data.teleop_shooting_times)
+    };
+  }
+
   private async createTables(db: Database): Promise<void> {
     try {
       // Check existing tables
@@ -59,38 +83,37 @@ class DatabaseManager {
         console.log('Creating match_data table...');
         await db.execute(`
           CREATE TABLE match_data (
-            doc_ID TEXT PRIMARY KEY,
-            is_uploaded INTEGER DEFAULT 0,
-            match_number INTEGER NOT NULL,
-            team_number INTEGER NOT NULL,
-            position TEXT NOT NULL,         
-            scouter_name TEXT NOT NULL,
-            auto_coral_L1 INTEGER DEFAULT 0,
-            auto_coral_L2 INTEGER DEFAULT 0,
-            auto_coral_L3 INTEGER DEFAULT 0,
-            auto_coral_L4 INTEGER DEFAULT 0,
-            auto_dropped INTEGER DEFAULT 0,
-            auto_net_algae INTEGER DEFAULT 0,
-            auto_processor_algae INTEGER DEFAULT 0,
-            auto_algae_removed INTEGER DEFAULT 0,
-            auto_leave INTEGER DEFAULT 0,
-            teleop_coral_L1 INTEGER DEFAULT 0,
-            teleop_coral_L2 INTEGER DEFAULT 0,
-            teleop_coral_L3 INTEGER DEFAULT 0,
-            teleop_coral_L4 INTEGER DEFAULT 0,
-            teleop_dropped INTEGER DEFAULT 0,
-            teleop_processor_algae INTEGER DEFAULT 0,
-            teleop_net_algae INTEGER DEFAULT 0,
-            teleop_algae_removed INTEGER DEFAULT 0,
-            end_none INTEGER DEFAULT 0,       
-            end_park INTEGER DEFAULT 0,      
-            end_shallow INTEGER DEFAULT 0,    
-            end_deep INTEGER DEFAULT 0,       
-            disabled TEXT DEFAULT '',
-            defense_rank INTEGER DEFAULT 0,
-            driving_rank INTEGER DEFAULT 0,
-            notes TEXT DEFAULT '',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            doc_ID TEXT,
+            is_uploaded INTEGER,
+            match_number INTEGER,
+            team_number INTEGER,
+            position TEXT,         
+            scouter_name TEXT,
+            auto_L1_climb INTEGER,
+            auto_attempted_climb INTEGER,
+            auto_used_depot INTEGER,
+            auto_used_outpost INTEGER,
+            auto_bump INTEGER,
+            auto_trench INTEGER,
+            auto_shooting_times TEXT,
+            auto_leave INTEGER,
+            teleop_L1_climb INTEGER,
+            teleop_L2_climb INTEGER,
+            teleop_L3_climb INTEGER,
+            teleop_attempted_climb INTEGER,
+            teleop_used_depot INTEGER,
+            teleop_used_outpost INTEGER,
+            teleop_bump INTEGER,
+            teleop_trench INTEGER,
+            teleop_shooting_times TEXT,
+            end_climb INTEGER,
+            end_shooting INTEGER,
+            end_none INTEGER,
+            disabled TEXT,
+            defense_rank INTEGER,
+            driving_rank INTEGER,
+            accuracy_rank INTEGER,
+            notes TEXT
           );
         `);
         
@@ -107,27 +130,24 @@ class DatabaseManager {
         console.log('Creating pit_data table...');
         await db.execute(`
           CREATE TABLE pit_data (
-            doc_ID TEXT PRIMARY KEY,
-            is_uploaded INTEGER DEFAULT 0,
+            doc_ID TEXT NOT NULL,
+            is_uploaded INTEGER NOT NULL,
             team_number INTEGER NOT NULL,
             scouter_name TEXT NOT NULL,
             drivetrain TEXT NOT NULL,
-            coral_L1 INTEGER DEFAULT 0,
-            coral_L2 INTEGER DEFAULT 0,
-            coral_L3 INTEGER DEFAULT 0,
-            coral_L4 INTEGER DEFAULT 0,
-            remove_algae INTEGER DEFAULT 0,
-            processor_algae INTEGER DEFAULT 0,
-            net_algae INTEGER DEFAULT 0,
-            prefers_coral INTEGER DEFAULT 0,
-            preferred_coral_level INTEGER DEFAULT 0,
-            park INTEGER DEFAULT 0,
-            shallow_climb INTEGER DEFAULT 0,
-            deep_climb INTEGER DEFAULT 0,
-            preferred_starting_zone TEXT DEFAULT '',
-            preferred_end_status TEXT DEFAULT '',
-            notes TEXT DEFAULT '',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            cannot_climb_auto INTEGER NOT NULL,
+            climb_auto_L1 INTEGER NOT NULL,
+            cannot_climb_L1 INTEGER NOT NULL,
+            climb_L1 INTEGER NOT NULL,
+            climb_L2 INTEGER NOT NULL,
+            climb_L3 INTEGER NOT NULL,
+            bump INTEGER NOT NULL,
+            trench INTEGER NOT NULL,
+            prefers_auto_climb_level INTEGER NOT NULL,
+            prefers_climb_level INTEGER NOT NULL,
+            preferred_starting_zone INTEGER NOT NULL,
+            preferred_end_status INTEGER NOT NULL,
+            notes TEXT
           );
         `);
         
@@ -150,25 +170,31 @@ class DatabaseManager {
       const docId = data.doc_ID || `match_${data.team_number}_${data.match_number}_${Date.now()}`;
       
       console.log('Adding match data for team:', data.team_number, 'match:', data.match_number);
-      
-      await db.execute(`
+      console.log("Full data", data);
+
+      await db.execute(
+      `
         INSERT OR REPLACE INTO match_data (
           doc_ID, is_uploaded, match_number, team_number, position, scouter_name,
-          auto_coral_L1, auto_coral_L2, auto_coral_L3, auto_coral_L4, auto_dropped,
-          auto_net_algae, auto_processor_algae, auto_algae_removed, auto_leave,
-          teleop_coral_L1, teleop_coral_L2, teleop_coral_L3, teleop_coral_L4, teleop_dropped,
-          teleop_processor_algae, teleop_net_algae, teleop_algae_removed,
-          end_none, end_park, end_shallow, end_deep, disabled, defense_rank, driving_rank, notes
+          auto_L1_climb, auto_attempted_climb, auto_used_depot, auto_used_outpost,
+          auto_bump, auto_trench, auto_shooting_times, auto_leave,
+          teleop_L1_climb, teleop_L2_climb, teleop_L3_climb, teleop_attempted_climb,
+          teleop_used_depot, teleop_used_outpost, teleop_bump, teleop_trench, teleop_shooting_times,
+          end_climb, end_shooting, end_none,
+          disabled, defense_rank, driving_rank, accuracy_rank, notes
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
+      `,
+      [
         docId, data.is_uploaded || 0, data.match_number, data.team_number, data.position, data.scouter_name,
-        data.auto_coral_L1, data.auto_coral_L2, data.auto_coral_L3, data.auto_coral_L4, data.auto_dropped,
-        data.auto_net_algae, data.auto_processor_algae, data.auto_algae_removed, data.auto_leave,
-        data.teleop_coral_L1, data.teleop_coral_L2, data.teleop_coral_L3, data.teleop_coral_L4, data.teleop_dropped,
-        data.teleop_processor_algae, data.teleop_net_algae, data.teleop_algae_removed,
-        data.end_none, data.end_park, data.end_shallow, data.end_deep, data.disabled,
-        data.defense_rank, data.driving_rank, data.notes
-      ]);
+        data.auto_L1_climb, data.auto_attempted_climb, data.auto_used_depot, data.auto_used_outpost,
+        data.auto_bump, data.auto_trench, this.serializeShootingTimes(data.auto_shooting_times),
+        data.auto_leave,
+        data.teleop_L1_climb, data.teleop_L2_climb, data.teleop_L3_climb, data.teleop_attempted_climb,
+        data.teleop_used_depot, data.teleop_used_outpost, data.teleop_bump, data.teleop_trench, this.serializeShootingTimes(data.teleop_shooting_times),
+        data.end_climb, data.end_shooting, data.end_none,
+        data.disabled, data.defense_rank, data.driving_rank, data.accuracy_rank, data.notes
+      ]
+    );
       
       console.log('Match data added successfully');
     });
@@ -176,27 +202,34 @@ class DatabaseManager {
 
   async getMatchDataByTeam(teamNumber: number): Promise<MatchData[]> {
     return this.withConnection(async (db) => {
-      return db.select<MatchData[]>(
+      const results = await db.select<RawMatchData[]>(
         'SELECT * FROM match_data WHERE team_number = ? ORDER BY match_number',
         [teamNumber]
       );
+      return results.map(r => this.parseMatchDataFromDB(r));
     });
   }
 
   async getMatchDataByMatch(matchNumber: number): Promise<MatchData[]> {
     return this.withConnection(async (db) => {
-      return db.select<MatchData[]>(
+      const results = await db.select<RawMatchData[]>(
         'SELECT * FROM match_data WHERE match_number = ? ORDER BY team_number',
         [matchNumber]
       );
+      return results.map(r => this.parseMatchDataFromDB(r));
     });
   }
 
   async getAllMatchData(): Promise<MatchData[]> {
     return this.withConnection(async (db) => {
-      return db.select<MatchData[]>(
+      console.log('DatabaseManager: Fetching all match data...');
+      const results = await db.select<RawMatchData[]>(
         'SELECT * FROM match_data ORDER BY match_number, team_number'
       );
+      console.log(`DatabaseManager: Found ${results.length} raw match records`);
+      const parsed = results.map(r => this.parseMatchDataFromDB(r));
+      console.log(`DatabaseManager: Parsed ${parsed.length} match records`);
+      return parsed;
     });
   }
 
@@ -208,15 +241,13 @@ class DatabaseManager {
       await db.execute(`
         INSERT OR REPLACE INTO pit_data (
           doc_ID, is_uploaded, team_number, scouter_name, drivetrain,
-          coral_L1, coral_L2, coral_L3, coral_L4, remove_algae,
-          processor_algae, net_algae, prefers_coral, preferred_coral_level,
-          park, shallow_climb, deep_climb, preferred_starting_zone, preferred_end_status, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          cannot_climb_auto, climb_auto_L1, cannot_climb_L1, climb_L1, climb_L2, climb_L3,
+          bump, trench, prefers_auto_climb_level, prefers_climb_level, preferred_starting_zone, preferred_end_status, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         docId, data.is_uploaded || 0, data.team_number, data.scouter_name, data.drivetrain,
-        data.coral_L1, data.coral_L2, data.coral_L3, data.coral_L4, data.remove_algae,
-        data.processor_algae, data.net_algae, data.prefers_coral, data.preferred_coral_level,
-        data.park, data.shallow_climb, data.deep_climb, data.preferred_starting_zone,
+        data.cannot_climb_auto, data.climb_auto_L1, data.cannot_climb_L1, data.climb_L1, data.climb_L2, data.climb_L3,
+        data.bump, data.trench, data.prefers_auto_climb_level, data.prefers_climb_level, data.preferred_starting_zone,
         data.preferred_end_status, data.notes || ''
       ]);
     });
@@ -244,13 +275,11 @@ class DatabaseManager {
         SELECT 
           team_number,
           COUNT(*) as match_count,
-          AVG(auto_coral_L1 + auto_coral_L2 + auto_coral_L3 + auto_coral_L4) as avg_auto_coral_total,
-          AVG(teleop_coral_L1 + teleop_coral_L2 + teleop_coral_L3 + teleop_coral_L4) as avg_teleop_coral_total,
-          AVG(auto_net_algae + auto_processor_algae + auto_algae_removed) as avg_auto_algae_total,
-          AVG(teleop_net_algae + teleop_processor_algae + teleop_algae_removed) as avg_teleop_algae_total,
-          AVG(CASE WHEN (end_shallow + end_deep) > 0 THEN 1.0 ELSE 0.0 END) as climb_success_rate,
+          AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
-          AVG(driving_rank) as avg_driving_rank
+          AVG(driving_rank) as avg_driving_rank,
+          AVG(accuracy_rank) as avg_accuracy_rank
         FROM match_data 
         WHERE team_number = ?
         GROUP BY team_number
@@ -267,13 +296,11 @@ class DatabaseManager {
         SELECT 
           team_number,
           COUNT(*) as match_count,
-          AVG(auto_coral_L1 + auto_coral_L2 + auto_coral_L3 + auto_coral_L4) as avg_auto_coral_total,
-          AVG(teleop_coral_L1 + teleop_coral_L2 + teleop_coral_L3 + teleop_coral_L4) as avg_teleop_coral_total,
-          AVG(auto_net_algae + auto_processor_algae + auto_algae_removed) as avg_auto_algae_total,
-          AVG(teleop_net_algae + teleop_processor_algae + teleop_algae_removed) as avg_teleop_algae_total,
-          AVG(CASE WHEN (end_shallow + end_deep) > 0 THEN 1.0 ELSE 0.0 END) as climb_success_rate,
+          AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
-          AVG(driving_rank) as avg_driving_rank
+          AVG(driving_rank) as avg_driving_rank,
+          AVG(accuracy_rank) as avg_accuracy_rank
         FROM match_data 
         GROUP BY team_number
         ORDER BY team_number
@@ -284,22 +311,20 @@ class DatabaseManager {
     });
   }
 
-  async getTopTeamsByCoralScoring(limit: number = 10): Promise<TeamStats[]> {
+  async getTopTeamsByScoring(limit: number = 10): Promise<TeamStats[]> {
     return this.withConnection(async (db) => {
       const result = await db.select<TeamStats[]>(`
         SELECT 
           team_number,
           COUNT(*) as match_count,
-          AVG(auto_coral_L1 + auto_coral_L2 + auto_coral_L3 + auto_coral_L4) as avg_auto_coral_total,
-          AVG(teleop_coral_L1 + teleop_coral_L2 + teleop_coral_L3 + teleop_coral_L4) as avg_teleop_coral_total,
-          AVG(auto_net_algae + auto_processor_algae + auto_algae_removed) as avg_auto_algae_total,
-          AVG(teleop_net_algae + teleop_processor_algae + teleop_algae_removed) as avg_teleop_algae_total,
-          AVG(CASE WHEN (end_shallow + end_deep) > 0 THEN 1.0 ELSE 0.0 END) as climb_success_rate,
+          AVG(CASE WHEN auto_L1_climb > 0 THEN 1.0 ELSE 0.0 END) as autoClimb_success_rate,
+          AVG(CASE WHEN (teleop_L1_climb + teleop_L2_climb + teleop_L3_climb) > 0 THEN 1.0 ELSE 0.0 END) as endGameClimb_success_rate,
           AVG(defense_rank) as avg_defense_rank,
-          AVG(driving_rank) as avg_driving_rank
+          AVG(driving_rank) as avg_driving_rank,
+          AVG(accuracy_rank) as avg_accuracy_rank
         FROM match_data 
         GROUP BY team_number
-        ORDER BY (avg_auto_coral_total + avg_teleop_coral_total) DESC
+        ORDER BY (endGameClimb_success_rate + autoClimb_success_rate) DESC
         LIMIT ?
       `, [limit]);
       
@@ -354,7 +379,8 @@ class DatabaseManager {
         
         // Read all data immediately
         try {
-          matchData = await uploadedDb.select<MatchData[]>('SELECT * FROM match_data');
+          const rawMatchData = await uploadedDb.select<RawMatchData[]>('SELECT * FROM match_data');
+          matchData = rawMatchData.map(r => this.parseMatchDataFromDB(r));
           console.log(`Found ${matchData.length} match records in uploaded database`);
         } catch (error) {
           console.warn('No match_data table in uploaded database:', error);
@@ -499,18 +525,11 @@ class DatabaseManager {
       const headers = [
         'Team Number',
         'Drivetrain',
-        'Coral L1',
-        'Coral L2', 
-        'Coral L3',
-        'Coral L4',
-        'Prefers Coral',
-        'Preferred Coral Level',
-        'Remove Algae',
-        'Processor Algae',
-        'Net Algae',
-        'Park',
-        'Shallow Climb',
-        'Deep Climb',
+        'Bump',
+        'Trench', 
+        'L1',
+        'L2',
+        'L3',
         'Preferred Starting Zone',
         'Preferred End Status',
         'Notes',
@@ -521,18 +540,11 @@ class DatabaseManager {
       const csvData = pitData.map(pit => [
         pit.team_number,
         pit.drivetrain || '',
-        pit.coral_L1 > 0 ? 'Yes' : 'No',
-        pit.coral_L2 > 0 ? 'Yes' : 'No',
-        pit.coral_L3 > 0 ? 'Yes' : 'No',
-        pit.coral_L4 > 0 ? 'Yes' : 'No',
-        pit.prefers_coral > 0 ? 'Yes' : 'No',
-        pit.preferred_coral_level || '',
-        pit.remove_algae > 0 ? 'Yes' : 'No',
-        pit.processor_algae > 0 ? 'Yes' : 'No',
-        pit.net_algae > 0 ? 'Yes' : 'No',
-        pit.park > 0 ? 'Yes' : 'No',
-        pit.shallow_climb > 0 ? 'Yes' : 'No',
-        pit.deep_climb > 0 ? 'Yes' : 'No',
+        pit.Bump > 0 ? 'Yes' : 'No',
+        pit.Trench > 0 ? 'Yes' : 'No',
+        pit.L1 > 0 ? 'Yes' : 'No',
+        pit.L2 > 0 ? 'Yes' : 'No',
+        pit.L3 > 0 ? 'Yes' : 'No',
         pit.preferred_starting_zone || '',
         pit.preferred_end_status || '',
         pit.notes || '',
@@ -569,7 +581,8 @@ class DatabaseManager {
 
   async exportMatchDataToCSV(): Promise<void> {
     return this.withConnection(async (db) => {
-      const matchData = await db.select<MatchData[]>('SELECT * FROM match_data ORDER BY match_number, team_number');
+      const rawData = await db.select<RawMatchData[]>('SELECT * FROM match_data ORDER BY match_number, team_number');
+      const matchData = rawData.map(r => this.parseMatchDataFromDB(r));
       
       if (matchData.length === 0) {
         throw new Error('No match data to export');
@@ -581,30 +594,29 @@ class DatabaseManager {
         'Team Number',
         'Position',
         'Scouter Name',
-        'Auto Coral L1',
-        'Auto Coral L2',
-        'Auto Coral L3',
-        'Auto Coral L4',
-        'Auto Dropped',
-        'Auto Net Algae',
-        'Auto Processor Algae',
-        'Auto Algae Removed',
-        'Auto Leave',
-        'Teleop Coral L1',
-        'Teleop Coral L2',
-        'Teleop Coral L3',
-        'Teleop Coral L4',
-        'Teleop Dropped',
-        'Teleop Processor Algae',
-        'Teleop Net Algae',
-        'Teleop Algae Removed',
+        'Auto L1 Climb',
+        'Auto Attempted Climb',
+        'Auto Used Depot',
+        'Auto Used Outpost',
+        'Auto Bump',
+        'Auto Trench',
+        'Auto Shooting Times',
+        'Teleop L1 Climb',
+        'Teleop L2 Climb',
+        'Teleop L3 Climb',
+        'Teleop Attempted Climb',
+        'Teleop Used Depot',
+        'Teleop Used Outpost',
+        'Teleop Bump',
+        'Teleop Trench',
+        'Teleop Shooting Times',
         'End None',
-        'End Park',
-        'End Shallow',
-        'End Deep',
+        'End Climb',
+        'End Shooting',
         'Disabled',
         'Defense Rank',
         'Driving Rank',
+        'Accuracy Ranking',
         'Notes'
       ];
 
@@ -614,30 +626,29 @@ class DatabaseManager {
         match.team_number,
         match.position || '',
         match.scouter_name || '',
-        match.auto_coral_L1 || 0,
-        match.auto_coral_L2 || 0,
-        match.auto_coral_L3 || 0,
-        match.auto_coral_L4 || 0,
-        match.auto_dropped || 0,
-        match.auto_net_algae || 0,
-        match.auto_processor_algae || 0,
-        match.auto_algae_removed || 0,
-        match.auto_leave > 0 ? 'Yes' : 'No',
-        match.teleop_coral_L1 || 0,
-        match.teleop_coral_L2 || 0,
-        match.teleop_coral_L3 || 0,
-        match.teleop_coral_L4 || 0,
-        match.teleop_dropped || 0,
-        match.teleop_processor_algae || 0,
-        match.teleop_net_algae || 0,
-        match.teleop_algae_removed || 0,
+        match.auto_L1_climb || 0,
+        match.auto_attempted_climb || 0,
+        match.auto_used_depot || 0,
+        match.auto_used_outpost || 0,
+        match.auto_bump || 0,
+        match.auto_trench || 0,
+        match.auto_shooting_times.join(';') || '',
+        match.teleop_L1_climb || 0,
+        match.teleop_L2_climb || 0,
+        match.teleop_L3_climb || 0,
+        match.teleop_attempted_climb || 0,
+        match.teleop_used_depot || 0,
+        match.teleop_used_outpost || 0,
+        match.teleop_bump || 0,
+        match.teleop_trench || 0,
+        match.teleop_shooting_times.join(';') || '',
         match.end_none > 0 ? 'Yes' : 'No',
-        match.end_park > 0 ? 'Yes' : 'No',
-        match.end_shallow > 0 ? 'Yes' : 'No',
-        match.end_deep > 0 ? 'Yes' : 'No',
+        match.end_climb > 0 ? 'Yes' : 'No',
+        match.end_shooting > 0 ? 'Yes' : 'No',
         match.disabled || '',
         match.defense_rank || 0,
         match.driving_rank || 0,
+        match.accuracy_rank || 0,
         match.notes || ''
       ]);
 

@@ -17,7 +17,7 @@ export function useTabletConnection() {
       setIsLoading(false);
     }
   };
-
+  
   useEffect(() => {
     // Check connection immediately
     checkConnection();

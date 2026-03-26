@@ -125,7 +125,7 @@ export default function PitPage() {
             <div>
               <p className="text-sm text-gray-800">Can Climb</p>
               <p className="text-2xl font-bold text-gray-900">
-                {pitData.filter(p => p.shallow_climb > 0 || p.deep_climb > 0).length}
+                {pitData.filter(p =>  p.L1 > 0 || p.L2 > 0 || p.L3 > 0).length}
               </p>
             </div>
           </div>
@@ -193,87 +193,56 @@ export default function PitPage() {
                         <div className="bg-white p-4 rounded-lg border">
                           <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
                             <Trophy className="w-5 h-5 text-yellow-600" />
-                            Coral Scoring
+                            Trench and Bump
                           </h4>
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-800">Level 1:</span>
+                              <span className="text-sm text-gray-800">Bump:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.coral_L1)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.coral_L1)}</span>
+                                {getCapabilityIcon(pit.Bump)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.Bump)}</span>
                               </div>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-800">Level 2:</span>
+                              <span className="text-sm text-gray-800">Trench:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.coral_L2)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.coral_L2)}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-800">Level 3:</span>
-                              <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.coral_L3)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.coral_L3)}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-800">Level 4:</span>
-                              <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.coral_L4)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.coral_L4)}</span>
-                              </div>
-                            </div>
-                            
-                            {/* Coral Preferences */}
-                            <div className="pt-2 border-t">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm text-gray-800 font-medium">Prefers Coral:</span>
-                                <div className="flex items-center gap-2">
-                                  {getCapabilityIcon(pit.prefers_coral)}
-                                  <span className="text-sm text-gray-900">{getCapabilityText(pit.prefers_coral)}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-800">Preferred Level:</span>
-                                <span className="text-sm text-gray-900">
-                                  Level {pit.preferred_coral_level}
-                                </span>
+                                {getCapabilityIcon(pit.Trench)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.Trench)}</span>
                               </div>
                             </div>
                           </div>
                         </div>
-
-                        {/* Algae Capabilities */}
+                        {/*
+                         Climb Capabilities 
                         <div className="bg-white p-4 rounded-lg border">
                           <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
                             <Zap className="w-5 h-5 text-green-600" />
-                            Algae Handling
+                            Climb Capabilities
                           </h4>
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-800">Remove Algae:</span>
+                              <span className="text-sm text-gray-800">L1:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.remove_algae)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.remove_algae)}</span>
+                                {getCapabilityIcon(pit.L1)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.L1)}</span>
                               </div>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-800">Processor:</span>
+                              <span className="text-sm text-gray-800">L2:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.processor_algae)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.processor_algae)}</span>
+                                {getCapabilityIcon(pit.L2)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.L2)}</span>
                               </div>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-800">Net:</span>
+                              <span className="text-sm text-gray-800">L3:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.net_algae)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.net_algae)}</span>
+                                {getCapabilityIcon(pit.L3)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.L3)}</span>
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </div>*/}
 
                         {/* Endgame & Strategy */}
                         <div className="bg-white p-4 rounded-lg border">
@@ -283,24 +252,24 @@ export default function PitPage() {
                           </h4>
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-800">Park:</span>
+                              <span className="text-sm text-gray-800">L1:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.park)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.park)}</span>
+                                {getCapabilityIcon(pit.L1)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.L1)}</span>
                               </div>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-800">Shallow Climb:</span>
+                              <span className="text-sm text-gray-800">L2:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.shallow_climb)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.shallow_climb)}</span>
+                                {getCapabilityIcon(pit.L2)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.L2)}</span>
                               </div>
                             </div>
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-gray-800">Deep Climb:</span>
+                              <span className="text-sm text-gray-800">L3:</span>
                               <div className="flex items-center gap-2">
-                                {getCapabilityIcon(pit.deep_climb)}
-                                <span className="text-sm text-gray-900">{getCapabilityText(pit.deep_climb)}</span>
+                                {getCapabilityIcon(pit.L3)}
+                                <span className="text-sm text-gray-900">{getCapabilityText(pit.L3)}</span>
                               </div>
                             </div>
 

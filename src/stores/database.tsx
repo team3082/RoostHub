@@ -23,7 +23,8 @@ interface DatabaseStore {
   loadPitDataByTeam: (teamNumber: number) => Promise<void>;
   loadAllPitData: () => Promise<void>;
   loadTeamStats: (teamNumber?: number) => Promise<void>;
-  loadTopTeamsByCoralScoring: (limit?: number) => Promise<void>;
+  // will need to fix...
+  loadTopTeamsByScoring: (limit?: number) => Promise<void>;
   processUploadedDatabase: (uploadedDbPath: string) => Promise<void>;
   setupUploadListener: () => Promise<void>;
   deleteAllMatchData: () => Promise<void>;
@@ -120,9 +121,12 @@ export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
   loadAllMatchData: async () => {
     set({ loading: true, error: null });
     try {
+      console.log('Store: Loading all match data...');
       const matchData = await get().dbManager.getAllMatchData();
+      console.log('Store: Loaded', matchData.length, 'match records');
       set({ matchData, loading: false });
     } catch (error) {
+      console.error('Store: Failed to load match data:', error);
       set({ 
         loading: false, 
         error: error instanceof Error ? error.message : 'Failed to load match data' 
@@ -178,10 +182,10 @@ export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
     }
   },
 
-  loadTopTeamsByCoralScoring: async (limit = 10) => {
+  loadTopTeamsByScoring: async (limit = 10) => {
     set({ loading: true, error: null });
     try {
-      const teamStats = await get().dbManager.getTopTeamsByCoralScoring(limit);
+      const teamStats = await get().dbManager.getTopTeamsByScoring(limit);
       set({ teamStats, loading: false });
     } catch (error) {
       set({ 
